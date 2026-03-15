@@ -1,0 +1,16 @@
+{
+  "name": "cal-ai-convex",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "convex dev",
+    "deploy": "convex deploy"
+  },
+  "dependencies": {
+    "convex": "^1.33.1",
+    "openai": "^4.104.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}

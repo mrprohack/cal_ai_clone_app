@@ -7,7 +7,7 @@ export const getDailySummary = query({
   args: { date: v.string() },
   handler: async (ctx, { date }) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthenticated");
+    if (!identity) return null;
 
     const user = await ctx.db
       .query("users")
@@ -28,7 +28,7 @@ export const getWeekView = query({
   args: { startDate: v.string() },
   handler: async (ctx, { startDate }) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthenticated");
+    if (!identity) return [];
 
     const user = await ctx.db
       .query("users")

@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query, action } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { api } from "./_generated/api";
 
 // ─── Queries ────────────────────────────────────────────────────────────────
@@ -8,7 +8,7 @@ export const getTodayMeals = query({
   args: { date: v.string() },
   handler: async (ctx, { date }) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthenticated");
+    if (!identity) return [];
 
     const user = await ctx.db
       .query("users")
@@ -29,7 +29,7 @@ export const getMealsForDateRange = query({
   args: { startDate: v.string(), endDate: v.string() },
   handler: async (ctx, { startDate, endDate }) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthenticated");
+    if (!identity) return [];
 
     const user = await ctx.db
       .query("users")
@@ -183,95 +183,7 @@ export const deleteMeal = mutation({
   },
 });
 
-// ─── AI Action ───────────────────────────────────────────────────────────────
-
-export const analyzeFoodPhoto = action({
-  args: {
-    storageId: v.id("_storage"),
-    date: v.string(),
-    mealType: v.union(
-      v.literal("breakfast"),
-      v.literal("lunch"),
-      v.literal("dinner"),
-      v.literal("snack")
-    ),
-  },
-  handler: async (ctx, { storageId, date, mealType }) => {
-    const { default: OpenAI } = await import("openai");
-    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-    // Get file URL from Convex storage
-    const url = await ctx.storage.getUrl(storageId);
-    if (!url) throw new Error("Could not get photo URL");
-
-    const response = await client.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: `You are a professional nutritionist. Analyze this food photo and identify all visible foods.
-Return ONLY valid JSON in this exact format, no extra text:
-{
-  "foods": [
-    {
-      "name": "food name",
-      "servingGrams": 150,
-      "calories": 250,
-      "protein": 12,
-      "carbs": 30,
-      "fat": 8
-    }
-  ],
-  "confidence": 0.85
-}
-Be accurate with macronutrients. If multiple items are visible, list each separately.`,
-            },
-            {
-              type: "image_url",
-              image_url: { url, detail: "high" },
-            },
-          ],
-        },
-      ],
-      max_tokens: 800,
-    });
-
-    const raw = response.choices[0].message.content ?? "{}";
-    let parsed: {
-      foods: Array<{
-        name: string;
-        servingGrams: number;
-        calories: number;
-        protein: number;
-        carbs: number;
-        fat: number;
-      }>;
-      confidence: number;
-    };
-
-    try {
-      // Strip markdown code fences if present
-      const clean = raw.replace(/```json?/g, "").replace(/```/g, "").trim();
-      parsed = JSON.parse(clean);
-    } catch {
-      throw new Error("AI returned invalid JSON: " + raw);
-    }
-
-    // Save the analyzed meal
-    await ctx.runMutation(api.meals.saveMealFromAI, {
-      date,
-      mealType,
-      photoStorageId: storageId,
-      foods: parsed.foods,
-      aiConfidence: parsed.confidence,
-    });
-
-    return parsed;
-  },
-});
+// analyzeFoodPhoto moved to meal_actions.ts
 
 export const generateUploadUrl = mutation({
   handler: async (ctx) => {

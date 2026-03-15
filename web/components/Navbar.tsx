@@ -4,11 +4,11 @@ import { usePathname } from "next/navigation";
 import styles from "./Navbar.module.css";
 
 const NAV_ITEMS = [
-  { href: "/dashboard", label: "🏠 Today" },
-  { href: "/log", label: "📷 Log" },
-  { href: "/progress", label: "📸 Progress" },
-  { href: "/chat", label: "🤖 FitBot" },
-  { href: "/profile", label: "👤 Profile" },
+  { href: "/dashboard", label: "Today" },
+  { href: "/log", label: "Log" },
+  { href: "/progress", label: "Progress" },
+  { href: "/chat", label: "FitBot" },
+  { href: "/profile", label: "Profile" },
 ];
 
 export function Navbar() {

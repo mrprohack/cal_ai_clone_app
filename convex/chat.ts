@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query, action } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { api } from "./_generated/api";
 
 // ─── Fitness AI Assistant ─────────────────────────────────────────────────
@@ -96,56 +96,4 @@ export const clearChat = mutation({
 
 // ─── AI Action ───────────────────────────────────────────────────────────────
 
-export const sendMessage = action({
-  args: { userMessage: v.string() },
-  handler: async (ctx, { userMessage }) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Unauthenticated");
-
-    // Get user profile for context
-    const user = await ctx.runQuery(api.users.getMe);
-
-    // Save user message
-    await ctx.runMutation(api.chat.saveMessage, {
-      role: "user",
-      content: userMessage,
-    });
-
-    // Get recent chat history for context (last 20 messages)
-    const history = await ctx.runQuery(api.chat.getChatHistory, { limit: 20 });
-
-    const { default: OpenAI } = await import("openai");
-    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-    // Build context message about user's goals
-    const userContext = user
-      ? `\n\nUser context: Goal is to ${user.goalType ?? "maintain"}, daily calorie target: ${user.dailyCalorieTarget ?? "not set"} kcal, protein target: ${user.dailyProteinTarget ?? "not set"}g.`
-      : "";
-
-    const messages = [
-      { role: "system" as const, content: FITNESS_SYSTEM_PROMPT + userContext },
-      ...history.slice(-18).map((m) => ({
-        role: m.role as "user" | "assistant",
-        content: m.content,
-      })),
-      { role: "user" as const, content: userMessage },
-    ];
-
-    const response = await client.chat.completions.create({
-      model: "gpt-4o",
-      messages,
-      max_tokens: 500,
-      temperature: 0.7,
-    });
-
-    const assistantMessage = response.choices[0].message.content ?? "Sorry, I couldn't generate a response.";
-
-    // Save assistant response
-    await ctx.runMutation(api.chat.saveMessage, {
-      role: "assistant",
-      content: assistantMessage,
-    });
-
-    return assistantMessage;
-  },
-});
+// sendMessage moved to chat_actions.ts
