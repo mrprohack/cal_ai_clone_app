@@ -1,0 +1,53 @@
+{
+  "expo": {
+    "name": "Cal AI",
+    "slug": "cal-ai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0D0D0D"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.calai.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Cal AI uses your camera to scan food and capture progress photos.",
+        "NSPhotoLibraryUsageDescription": "Cal AI accesses your photo library to log meals and track progress."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0D0D0D"
+      },
+      "package": "com.calai.app",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-camera",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Cal AI accesses your photos to log meals and track progress."
+        }
+      ]
+    ],
+    "scheme": "calai",
+    "extra": {
+      "clerkPublishableKey": "YOUR_CLERK_PUBLISHABLE_KEY",
+      "convexUrl": "https://YOUR_DEPLOYMENT.convex.cloud",
+      "eas": {
+        "projectId": "YOUR_EAS_PROJECT_ID"
+      }
+    }
+  }
+}
