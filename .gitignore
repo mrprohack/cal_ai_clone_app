@@ -6,3 +6,6 @@ dist/
 .DS_Store
 
 .env.local
+
+# ECC source (installed, not committed)
+everything-claude-code/
