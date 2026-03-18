@@ -17,29 +17,6 @@ const SUGGESTIONS = [
   "How can I add more fibre?",
 ];
 
-/* ── Canned responses (demo) ── */
-const BOT_REPLIES: Record<string, string> = {
-  default:
-    "Great question! Based on your logged meals, you're at 1,240 kcal so far today. You have around 760 kcal remaining to hit your 2,000 kcal goal. I'd suggest a protein-rich snack or a light dinner to close the gap without going over. 💡",
-  protein:
-    "You've hit 92g of protein today — you need 150g to hit your goal. Try adding Greek yogurt (17g), a chicken breast (31g), or a protein shake (25g) to get there. You can do it! 💪",
-  workout:
-    "For a pre-workout meal, aim for easy-to-digest carbs + some protein about 60–90 minutes before. A banana with peanut butter or Greek yogurt with berries works great and won't weigh you down. 🏋️",
-  dinner:
-    "Here's a 400-calorie dinner idea: **Lemon-herb salmon (200g)** with **roasted zucchini** and **½ cup quinoa**. That delivers ~35g protein and keeps your fat intake in check. Want a full recipe? 🐟",
-  fibre:
-    "Adding fibre is easy! Try swapping white rice for brown rice, snacking on an apple, or adding a handful of lentils to your next meal. Aim for 25–38g per day — most people only get 15g. 🥦",
-};
-
-function getReply(msg: string): string {
-  const lower = msg.toLowerCase();
-  if (lower.includes("protein")) return BOT_REPLIES.protein;
-  if (lower.includes("workout") || lower.includes("exercise")) return BOT_REPLIES.workout;
-  if (lower.includes("dinner") || lower.includes("meal")) return BOT_REPLIES.dinner;
-  if (lower.includes("fibre") || lower.includes("fiber")) return BOT_REPLIES.fibre;
-  return BOT_REPLIES.default;
-}
-
 const INIT_MESSAGES: Message[] = [
   {
     role: "bot",
@@ -48,30 +25,115 @@ const INIT_MESSAGES: Message[] = [
   },
 ];
 
+/* ── Minimal markdown renderer (bold / italic / newlines) ── */
+function renderMd(text: string) {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.*?)\*/g, "<em>$1</em>")
+    .replace(/\n/g, "<br/>");
+}
+
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>(INIT_MESSAGES);
   const [input, setInput]       = useState("");
-  const [typing, setTyping]     = useState(false);
+  const [streaming, setStreaming] = useState(false);
   const endRef                  = useRef<HTMLDivElement>(null);
+  // Keep a mutable ref to the conversation history sent to the API
+  const historyRef = useRef<{ role: string; content: string }[]>([]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, typing]);
+  }, [messages, streaming]);
 
-  function send(text?: string) {
+  async function send(text?: string) {
     const txt = (text ?? input).trim();
-    if (!txt) return;
+    if (!txt || streaming) return;
+
     const ts = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     setMessages((m) => [...m, { role: "user", text: txt, ts }]);
     setInput("");
-    setTyping(true);
-    setTimeout(() => {
-      setTyping(false);
-      setMessages((m) => [
-        ...m,
-        { role: "bot", text: getReply(txt), ts: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) },
-      ]);
-    }, 1400 + Math.random() * 800);
+    setStreaming(true);
+
+    // Append user turn to history
+    historyRef.current = [
+      ...historyRef.current,
+      { role: "user", content: txt },
+    ];
+
+    // Add a placeholder bot message we'll stream into
+    const botTs = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    setMessages((m) => [...m, { role: "bot", text: "", ts: botTs }]);
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: historyRef.current }),
+      });
+
+      if (!res.ok || !res.body) {
+        const err = await res.text();
+        setMessages((m) => {
+          const copy = [...m];
+          copy[copy.length - 1] = { role: "bot", text: `⚠️ Error: ${err}`, ts: botTs };
+          return copy;
+        });
+        setStreaming(false);
+        return;
+      }
+
+      // Read SSE stream
+      const reader  = res.body.getReader();
+      const decoder = new TextDecoder();
+      let accumulated = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        // SSE lines: "data: {...}\n\n" or "data: [DONE]\n\n"
+        for (const line of chunk.split("\n")) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith("data:")) continue;
+          const payload = trimmed.slice(5).trim();
+          if (payload === "[DONE]") break;
+          try {
+            const json = JSON.parse(payload);
+            const delta: string = json?.choices?.[0]?.delta?.content ?? "";
+            if (delta) {
+              accumulated += delta;
+              const snap = accumulated;
+              setMessages((m) => {
+                const copy = [...m];
+                copy[copy.length - 1] = { role: "bot", text: snap, ts: botTs };
+                return copy;
+              });
+            }
+          } catch {
+            // partial JSON — skip
+          }
+        }
+      }
+
+      // Save the full bot reply to history
+      historyRef.current = [
+        ...historyRef.current,
+        { role: "assistant", content: accumulated },
+      ];
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      setMessages((m) => {
+        const copy = [...m];
+        copy[copy.length - 1] = { role: "bot", text: `⚠️ Network error: ${message}`, ts: botTs };
+        return copy;
+      });
+    } finally {
+      setStreaming(false);
+    }
   }
 
   function handleKey(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -96,7 +158,7 @@ export default function ChatPage() {
           </div>
 
           <div className={styles.todaySnap}>
-            <div className={styles.snapTitle}>Today's Snapshot</div>
+            <div className={styles.snapTitle}>Today&apos;s Snapshot</div>
             {[
               { label: "Calories",  val: "1,240 / 2,000", icon: "🔥" },
               { label: "Protein",   val: "92 / 150g",      icon: "💪" },
@@ -118,11 +180,18 @@ export default function ChatPage() {
                 key={s}
                 className={styles.suggestionBtn}
                 onClick={() => send(s)}
+                disabled={streaming}
                 id={`chat-suggest-${s.slice(0,10).replace(/\s+/g,"-").toLowerCase()}`}
               >
                 {s}
               </button>
             ))}
+          </div>
+
+          {/* Model badge */}
+          <div className={styles.modelBadge}>
+            <span className="material-symbols-outlined">auto_awesome</span>
+            Kimi K2 · Groq
           </div>
         </aside>
 
@@ -137,13 +206,26 @@ export default function ChatPage() {
                   </div>
                 )}
                 <div className={`${styles.bubble} ${msg.role === "user" ? styles.bubbleUser : styles.bubbleBot}`}>
-                  <div className={styles.bubbleText} dangerouslySetInnerHTML={{ __html: msg.text.replace(/\*\*(.*?)\*\*/g,"<strong>$1</strong>").replace(/\*(.*?)\*/g,"<em>$1</em>") }} />
+                  {msg.text === "" && streaming ? (
+                    /* Streaming typing indicator */
+                    <span className={styles.cursor}>▍</span>
+                  ) : (
+                    <div
+                      className={styles.bubbleText}
+                      dangerouslySetInnerHTML={{ __html: renderMd(msg.text) }}
+                    />
+                  )}
+                  {/* Show blinking cursor while this is the last bot message streaming */}
+                  {msg.role === "bot" && streaming && i === messages.length - 1 && msg.text !== "" && (
+                    <span className={styles.cursor}>▍</span>
+                  )}
                   {msg.ts && <div className={styles.bubbleTs}>{msg.ts}</div>}
                 </div>
               </div>
             ))}
 
-            {typing && (
+            {/* Classic typing dots while waiting for first token */}
+            {streaming && messages[messages.length - 1]?.text === "" && (
               <div className={styles.msgRow}>
                 <div className={styles.msgAvatar}>
                   <span className="material-symbols-outlined">smart_toy</span>
@@ -166,15 +248,19 @@ export default function ChatPage() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKey}
+                disabled={streaming}
                 id="fitbot-input"
               />
               <button
-                className={`${styles.sendBtn} ${input.trim() ? styles.sendBtnActive : ""}`}
+                className={`${styles.sendBtn} ${input.trim() && !streaming ? styles.sendBtnActive : ""}`}
                 onClick={() => send()}
-                disabled={!input.trim()}
+                disabled={!input.trim() || streaming}
                 id="fitbot-send"
               >
-                <span className="material-symbols-outlined">send</span>
+                {streaming
+                  ? <span className={`material-symbols-outlined ${styles.spinIcon}`}>progress_activity</span>
+                  : <span className="material-symbols-outlined">send</span>
+                }
               </button>
             </div>
             <div className={styles.inputHint}>Press Enter to send · Shift+Enter for new line</div>

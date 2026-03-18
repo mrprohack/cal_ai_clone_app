@@ -3,7 +3,7 @@ const nextConfig = {
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "*.convex.cloud" },
-      { protocol: "https", hostname: "img.clerk.com" },
+      { protocol: "https", hostname: "ui-avatars.com" },
     ],
   },
 };

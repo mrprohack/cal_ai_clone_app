@@ -240,8 +240,8 @@ export default function DashboardPage() {
                   <div className={styles.mealOverlay} />
                   <div className={styles.mealContent}>
                     <span className={`${styles.mealTag} ${tagClasses[idx % 4]}`}>{meal.mealType}</span>
-                    <h4 className={styles.mealName}>{meal.foods.map((f: any) => f.name).join(", ")}</h4>
-                    <p className={styles.mealMeta}>{Math.round(meal.totalCalories)} kcal · {Math.round(meal.totalProtein)}g protein</p>
+                    <h4 className={styles.mealName}>{meal.name}</h4>
+                    <p className={styles.mealMeta}>{Math.round(meal.calories)} kcal · {Math.round(meal.proteinG)}g protein</p>
                   </div>
                 </div>
               );

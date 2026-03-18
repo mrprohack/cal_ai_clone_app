@@ -276,3 +276,47 @@
 .sendBtnActive:hover { opacity: 0.9; }
 
 .inputHint { font-size: 11px; color: var(--text-muted); font-weight: 600; text-align: center; }
+
+/* ── Streaming cursor ── */
+.cursor {
+  display: inline-block;
+  color: var(--primary-light);
+  animation: blink 0.8s step-end infinite;
+  font-weight: 100;
+  margin-left: 1px;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+/* ── Spinner on send btn while streaming ── */
+.spinIcon { animation: spin 1s linear infinite; }
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ── Model badge ── */
+.modelBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: rgba(168, 85, 247, 0.08);
+  border: 1px solid rgba(168, 85, 247, 0.2);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  letter-spacing: 0.3px;
+}
+
+.modelBadge .material-symbols-outlined { font-size: 14px !important; color: #a855f7; }
+
+/* Disabled states while streaming */
+.suggestionBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+.textarea:disabled      { opacity: 0.6; cursor: not-allowed; }
+

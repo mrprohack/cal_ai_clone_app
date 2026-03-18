@@ -65,13 +65,13 @@ export default function LandingPage() {
           </p>
 
           <div className={styles.heroActions}>
-            <Link href="/dashboard" id="hero-open-dashboard" className={styles.ctaPrimary}>
+            <Link href="/signup" id="hero-signup" className={styles.ctaPrimary}>
               <span className="material-symbols-outlined">rocket_launch</span>
-              Open Dashboard
+              Get Started Free
             </Link>
-            <Link href="/chat" id="hero-try-fitbot" className={styles.ctaSecondary}>
-              <span className="material-symbols-outlined">smart_toy</span>
-              Try FitBot
+            <Link href="/login" id="hero-login" className={styles.ctaSecondary}>
+              <span className="material-symbols-outlined">login</span>
+              Log In
             </Link>
           </div>
 
@@ -178,9 +178,9 @@ export default function LandingPage() {
         <p className={styles.bottomCtaDesc}>
           Join thousands of athletes using AI to eat smarter, train harder, and track effortlessly.
         </p>
-        <Link href="/dashboard" id="bottom-cta-btn" className={styles.ctaPrimary}>
+        <Link href="/signup" id="bottom-cta-btn" className={styles.ctaPrimary}>
           <span className="material-symbols-outlined">bolt</span>
-          Start Free — No Credit Card
+          Sign Up Free — No Credit Card
         </Link>
       </section>
     </main>
