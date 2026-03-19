@@ -5,7 +5,7 @@
 ![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=next.js)
 ![Expo](https://img.shields.io/badge/Expo-React_Native-000020?logo=expo)
 ![Convex](https://img.shields.io/badge/Convex-Serverless-orange?logo=convex)
-![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4o-412991?logo=openai)
+![Groq](https://img.shields.io/badge/Groq-Llama--3-f55036?logo=groq)
 ![Clerk](https://img.shields.io/badge/Clerk-Auth-6C47FF?logo=clerk)
 ![License](https://img.shields.io/badge/license-MIT-brightgreen)
 
@@ -23,9 +23,9 @@
 
 | Feature | Description |
 |---|---|
-| 🍽️ **AI Meal Scanner** | Log breakfast, lunch, dinner & snacks by simply uploading a photo! GPT-4o Vision automatically extracts calories and macros (protein, carbs, fat). |
+| 🍽️ **AI Meal Scanner** | Log breakfast, lunch, dinner & snacks by simply uploading a photo! Groq Vision (Llama-3.2) automatically extracts calories and macros (protein, carbs, fat). |
 | 📊 **Live Dashboard** | Animated dual-ring progress chart showing calorie & protein targets in real time across all your devices. |
-| 🤖 **FitBot AI Coach** | Chat with a fitness AI coach powered by **OpenAI GPT-4o**, seamlessly integrated within the app. |
+| 🤖 **FitBot AI Coach** | Chat with a fitness AI coach powered by **Groq** (Llama-3), seamlessly integrated within the app. |
 | 📈 **Progress Tracker** | Daily macro snapshots, weekly check-ins with progress photos, and AI-generated analysis diffing your current week against the previous week. |
 | 👤 **Profile & Goals** | Mifflin-St Jeor BMR calculator, personalized calorie/macro targets automatically synced from your profile. |
 | 🔐 **Seamless Auth** | Secure authentication powered by **Clerk**, fully integrated across both Web and Mobile platforms. |
@@ -60,7 +60,7 @@ cal_ai_clone/
 | **Mobile Frontend** | [Expo](https://expo.dev) / React Native (Expo Router) |
 | **Database & Backend** | [Convex](https://convex.dev) — real-time database, serverless TypeScript functions & background actions |
 | **Auth** | [Clerk](https://clerk.com) — seamlessly integrated across Next.js and Expo |
-| **AI / Vision / Chat** | [OpenAI GPT-4o](https://openai.com) — handles meal scanning, progress diffing, and the FitBot coach |
+| **AI / Vision / Chat** | [Groq](https://groq.com) — handles meal scanning, progress diffing, and the FitBot coach via blazing fast Llama 3 models |
 | **Language** | TypeScript (strict) |
 | **Styling** | Web: CSS Modules (`.module.css`) / Mobile: React Native `StyleSheet` with shared design tokens |
 
@@ -73,7 +73,7 @@ cal_ai_clone/
 - Node.js ≥ 18
 - A [Convex](https://dashboard.convex.dev) account (free)
 - A [Clerk](https://clerk.com) account (free)
-- An [OpenAI](https://platform.openai.com) API key (for GPT-4o features)
+- A [Groq](https://console.groq.com) API key (for blazing fast AI features)
 
 ### 1. Clone & Install
 
@@ -93,7 +93,7 @@ Create `.env.local` files in the respective directories based on the providers:
 
 **For Convex (`convex/.env`):**
 ```env
-OPENAI_API_KEY=sk-...
+GROQ_API_KEY=gsk_...
 ```
 
 **For Web (`web/.env.local`):**
@@ -139,8 +139,8 @@ npx expo start
 ## 🧠 Data Flow & AI
 
 - **Real-time Sync:** Data lives in Convex. The `dailySummaries` automatically update via background mutations whenever a meal is added or deleted.
-- **Secure AI Execution:** All OpenAI calls happen securely on the Convex backend via `action`s. API keys are never exposed to the Web or Mobile clients.
-- **Vision:** Images (meals, progress photos) are uploaded to Convex Storage, and their secure URLs are passed to GPT-4o for analysis.
+- **Secure AI Execution:** All Groq calls happen securely on the Convex backend via `action`s. API keys are never exposed to the Web or Mobile clients.
+- **Vision:** Images (meals, progress photos) are uploaded to Convex Storage, and their secure URLs are passed to Groq for analysis.
 
 ---
 

@@ -12,7 +12,7 @@ This project is a clone of the "Cal AI" fitness and calorie tracking application
 - **Mobile Frontend:** React Native via [Expo](https://expo.dev/) (Using Expo Router)
 - **Web Frontend:** [Next.js 14](https://nextjs.org/) (App Router, React server/client components)
 - **Authentication:** [Clerk](https://clerk.com/) (Next.js and Expo integration)
-- **AI Integrations:** OpenAI GPT-4o (Vision for photos, Chat for FitBot)
+- **AI Integrations:** Groq (Llama-3 models for Vision and Chat)
 
 ## 📁 Repository Structure
 
@@ -47,8 +47,8 @@ Data lives in Convex and is automatically synced to clients in real-time.
 
 ## 🤖 AI Action Guidelines
 
-1. **Server-Side Execution:** All AI interactions MUST happen securely on the backend (`convex/` directory) using Convex `action`s. Do not use the OpenAI API key on the frontend (web or mobile).
-2. **GPT-4o Vision:** Meal scanning and progress photo diffing use GPT-4o's vision capabilities. Images must be passed using storage URLs handled by Convex.
+1. **Server-Side Execution:** All AI interactions MUST happen securely on the backend (`convex/` directory) using Convex `action`s. Do not use the Groq API key on the frontend (web or mobile).
+2. **Groq Vision:** Meal scanning and progress photo diffing use Groq's fast Llama-3 Vision capabilities. Images must be passed using storage URLs handled by Convex.
 3. **FitBot Guardrails:** The fitness chatbot (`chat.ts`) has strict system prompts. It MUST actively refuse to answer non-fitness/nutrition queries.
 
 ## 💻 Development Conventions
