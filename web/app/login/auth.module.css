@@ -323,8 +323,11 @@
 
 /* ── Responsive ─────────────────────────────────────── */
 @media (max-width: 480px) {
+  .page {
+    padding: 1rem;
+  }
   .card {
-    padding: 2rem 1.5rem 1.75rem;
+    padding: 2rem 1.25rem 1.75rem;
     border-radius: 20px;
   }
   .heading { font-size: 1.45rem; }

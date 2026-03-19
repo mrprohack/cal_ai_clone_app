@@ -27,7 +27,13 @@
   animation: fadeInUp 0.45s var(--ease-out) 0.05s both;
 }
 
-@media (max-width: 640px) { .mealType { gap: 8px; } }
+@media (max-width: 640px) {
+  .mealType {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+}
 
 .mealTypeBtn {
   flex: 1;

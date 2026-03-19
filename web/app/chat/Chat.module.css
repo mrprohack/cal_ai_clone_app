@@ -12,8 +12,7 @@
   animation: fadeInUp 0.4s var(--ease-out) both;
 }
 
-@media (max-width: 900px)  { .layout { grid-template-columns: 1fr; padding: 20px 16px 120px; } }
-@media (max-width: 640px)  { .sidebar { display: none; } }
+
 
 /* ── Sidebar ── */
 .sidebar {
@@ -320,3 +319,5 @@
 .suggestionBtn:disabled { opacity: 0.4; cursor: not-allowed; }
 .textarea:disabled      { opacity: 0.6; cursor: not-allowed; }
 
+@media (max-width: 900px)  { .layout { grid-template-columns: 1fr; padding: 20px 16px 120px; } }
+@media (max-width: 640px)  { .sidebar { display: none; } }

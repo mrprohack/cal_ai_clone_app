@@ -1,9 +1,9 @@
 "use client";
-export const dynamic = "force-dynamic";
 
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Navbar } from "@/components/Navbar";
+import { useAuth } from "@/lib/auth-context";
 import Link from "next/link";
 import styles from "./Dashboard.module.css";
 
@@ -140,10 +140,10 @@ export default function DashboardPage() {
   const today   = new Date().toISOString().split("T")[0];
   const meals   = useQuery(api.meals.getTodayMeals, { date: today }) ?? [];
   const summary = useQuery(api.daily.getDailySummary, { date: today });
-  const user    = useQuery(api.users.getMe);
+  const { user } = useAuth();
 
-  const calorieTarget = user?.dailyCalorieTarget ?? 2000;
-  const proteinTarget = user?.dailyProteinTarget ?? 150;
+  const calorieTarget = user?.calorieGoal ?? 2000;
+  const proteinTarget = user?.proteinGoal ?? 150;
   const consumed  = summary?.totalCalories ?? 0;
   const protein   = summary?.totalProtein  ?? 0;
   const carbs     = summary?.totalCarbs    ?? 0;
@@ -260,7 +260,7 @@ export default function DashboardPage() {
           <div className={styles.glassCard}>
             <div className={styles.cardLabel}>Body Progress</div>
             <div className={styles.progressWeight}>
-              <span className={styles.progressWeightVal}>{user?.weight ? user.weight + " kg" : "--"}</span>
+              <span className={styles.progressWeightVal}>{user?.weightKg ? user.weightKg + " kg" : "--"}</span>
               <span className={styles.progressWeightLabel}>Current Weight</span>
             </div>
             <div className={styles.progressPhotos}>

@@ -26,6 +26,10 @@ interface AuthUser {
   carbsGoal: number;
   fatGoal: number;
   avatarUrl?: string;
+  weightKg?: number;
+  heightCm?: number;
+  ageYears?: number;
+  gender?: string;
 }
 
 interface AuthState {
