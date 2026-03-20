@@ -13,7 +13,8 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useMutation, useAction } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { api } from "../../../convex/_generated/api";
+
 import { Colors, Spacing, Radius, FontSize, FontWeight } from "../../lib/theme";
 
 type MealType = "breakfast" | "lunch" | "dinner" | "snack";
@@ -38,7 +39,10 @@ export default function LogMealScreen() {
   const [step, setStep] = useState<"select" | "confirm" | "done">("select");
 
   const generateUploadUrl = useMutation(api.meals.generateUploadUrl);
-  const analyzeFoodPhoto = useAction(api.meals.analyzeFoodPhoto);
+  const analyzeFoodPhoto = useAction(api.meal_actions.analyzeFoodPhoto);
+
+  const saveMealFromAI = useMutation(api.meals.saveMealFromAI);
+
 
   const today = new Date().toISOString().split("T")[0];
   const mealTypes: MealType[] = ["breakfast", "lunch", "dinner", "snack"];
@@ -106,12 +110,25 @@ export default function LogMealScreen() {
 
   const confirmMeal = async () => {
     setSaving(true);
-    setStep("done");
-    setSaving(false);
-    Alert.alert("Meal saved! ✅", "Your meal has been logged successfully.");
-    setPhotoUri(null);
-    setAiResult(null);
-    setStep("select");
+    try {
+      await saveMealFromAI({
+        date: today,
+        mealType: selectedMealType,
+        photoStorageId: storageId as any,
+        foods: editedFoods,
+        aiConfidence: aiResult?.confidence ?? undefined,
+      });
+
+      setStep("done");
+      Alert.alert("Meal saved! ✅", "Your meal has been logged successfully.");
+      setPhotoUri(null);
+      setAiResult(null);
+      setStep("select");
+    } catch (err) {
+      Alert.alert("Save failed", "Could not save the meal. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const totalCal = editedFoods.reduce((s, f) => s + f.calories, 0);

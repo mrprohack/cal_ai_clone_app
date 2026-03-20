@@ -78,14 +78,8 @@ Be accurate with macronutrients. If multiple items are visible, list each separa
       throw new Error("AI returned invalid JSON: " + raw);
     }
 
-    await ctx.runMutation(api.meals.saveMealFromAI, {
-      date,
-      mealType,
-      photoStorageId: storageId,
-      foods: parsed.foods,
-      aiConfidence: parsed.confidence,
-    });
-
+    // Removed automatic save so that client can edit before confirming
     return parsed;
+
   },
 });
