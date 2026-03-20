@@ -51,12 +51,12 @@ export default function SignupPage() {
     setSubmitting(true);
     try {
       await signUp(name.trim(), email.trim(), password);
-      router.replace("/dashboard");
+      router.replace("/onboarding");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Sign up failed";
       if (msg.includes("Connection lost")) {
         // Action likely succeeded — redirect anyway
-        router.replace("/dashboard");
+        router.replace("/onboarding");
         return;
       }
       setError(msg);

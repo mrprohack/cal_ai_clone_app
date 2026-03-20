@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Space_Grotesk, Barlow_Condensed } from "next/font/google";
 import { ConvexClientProvider } from "./ConvexClientProvider";
 import "./globals.css";
@@ -19,9 +19,22 @@ const barlowCondensed = Barlow_Condensed({
   variable: "--font-heading",
 });
 
+export const viewport: Viewport = {
+  themeColor: "#09090b",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export const metadata: Metadata = {
   title: "Cal AI — Smart Fitness Tracker",
   description: "AI-powered calorie tracking and fitness coaching.",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Cal AI",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

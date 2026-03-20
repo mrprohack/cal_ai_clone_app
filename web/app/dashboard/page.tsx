@@ -329,10 +329,7 @@ export default function DashboardPage() {
       {/* FitBot FAB */}
       <Link href="/chat" className={styles.fab} id="dash-fitbot-fab">
         <div className={styles.fabGlow} aria-hidden />
-        <div className={styles.fabInner}>
-          <span className={`material-symbols-outlined ${styles.fabIcon}`}>smart_toy</span>
-          <span className={styles.fabBadge} />
-        </div>
+
         <div className={styles.fabTooltip}>
           <div className={styles.fabTooltipTitle}>FitBot AI</div>
           <div className={styles.fabTooltipText}>

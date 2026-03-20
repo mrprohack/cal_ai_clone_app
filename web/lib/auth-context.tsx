@@ -30,6 +30,7 @@ interface AuthUser {
   heightCm?: number;
   ageYears?: number;
   gender?: string;
+  onboarded?: boolean;
 }
 
 interface AuthState {

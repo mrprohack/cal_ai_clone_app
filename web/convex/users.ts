@@ -71,6 +71,56 @@ export const updateProfile = mutation({
   },
 });
 
+/**
+ * Complete onboarding: calculates BMR/TDEE and sets macro goals
+ */
+export const completeOnboarding = mutation({
+  args: {
+    userId: v.id("users"),
+    gender: v.string(),
+    ageYears: v.number(),
+    heightCm: v.number(),
+    weightKg: v.number(),
+    activityLevel: v.string(), // "sedentary", "light", "moderate", "active"
+    goal: v.string(), // "lose", "maintain", "gain"
+  },
+  handler: async (ctx, args) => {
+    const { userId, gender, ageYears, heightCm, weightKg, activityLevel, goal } = args;
+    
+    // Mifflin-St Jeor Equation
+    let bmr = 10 * weightKg + 6.25 * heightCm - 5 * ageYears;
+    bmr += gender === "male" ? 5 : -161;
+    
+    // Activity Multipliers
+    const multipliers: Record<string, number> = {
+      sedentary: 1.2,
+      light: 1.375,
+      moderate: 1.55,
+      active: 1.725
+    };
+    const tdee = bmr * (multipliers[activityLevel] || 1.2);
+    
+    // Goals
+    const goalMods: Record<string, number> = { lose: -500, maintain: 0, gain: 500 };
+    let calorieGoal = Math.round(tdee + (goalMods[goal] || 0));
+    
+    // Minimums
+    if (gender === "male" && calorieGoal < 1500) calorieGoal = 1500;
+    if (gender === "female" && calorieGoal < 1200) calorieGoal = 1200;
+    
+    // Macros
+    const proteinGoal = Math.round(weightKg * 2.2); // ~2.2g per kg for high protein
+    const fatGoal = Math.round((calorieGoal * 0.25) / 9); // 25% of calories
+    const carbsGoal = Math.round((calorieGoal - (proteinGoal * 4) - (fatGoal * 9)) / 4);
+
+    await ctx.db.patch(userId, {
+      gender, ageYears, heightCm, weightKg,
+      calorieGoal, proteinGoal, carbsGoal, fatGoal,
+      onboarded: true
+    });
+  }
+});
+
 /** ─── Plan management ──────────────────────────────────────── */
 
 /**
@@ -113,4 +163,41 @@ export const getUserPlan = query({
       planExpiresAt: user.planExpiresAt,
     };
   },
+});
+
+/** ─── Account Management ───────────────────────────────────── */
+
+export const deleteAccount = mutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    // 1. Delete user
+    await ctx.db.delete(userId);
+    // 2. Delete meals
+    const meals = await ctx.db.query("meals").withIndex("by_user", (q) => q.eq("userId", userId)).collect();
+    for (const meal of meals) { await ctx.db.delete(meal._id); }
+    // 3. Delete progress
+    const progress = await ctx.db.query("progress").withIndex("by_user", (q) => q.eq("userId", userId)).collect();
+    for (const p of progress) { await ctx.db.delete(p._id); }
+    // 4. Delete sessions
+    const sessions = await ctx.db.query("sessions").withIndex("by_user", (q) => q.eq("userId", userId)).collect();
+    for (const s of sessions) { await ctx.db.delete(s._id); }
+  }
+});
+
+export const exportData = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("User not found");
+    const { passwordHash, ...safeUser } = user;
+    
+    const meals = await ctx.db.query("meals").withIndex("by_user", (q) => q.eq("userId", userId)).collect();
+    const progress = await ctx.db.query("progress").withIndex("by_user", (q) => q.eq("userId", userId)).collect();
+    
+    return {
+      user: safeUser,
+      meals,
+      progress
+    };
+  }
 });

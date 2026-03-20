@@ -1,21 +1,34 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useAuth } from "@/lib/auth-context";
 import styles from "./Navbar.module.css";
 
 const NAV_ITEMS = [
-  { href: "/dashboard", label: "Today",    icon: "home" },
-  { href: "/log",       label: "Log",      icon: "restaurant" },
-  { href: "/progress",  label: "Progress", icon: "trending_up" },
-  { href: "/plans",     label: "Plans",    icon: "workspace_premium" },
-  { href: "/chat",      label: "FitBot",   icon: "smart_toy" },
-  { href: "/profile",   label: "Profile",  icon: "person" },
+  { href: "/dashboard",  label: "Today",      icon: "home" },
+  { href: "/log",        label: "Log",        icon: "restaurant" },
+  { href: "/progress",   label: "Progress",   icon: "trending_up" },
+  { href: "/body-scan",  label: "Body Scan",  icon: "body_system" },
+  { href: "/meal-plan",  label: "Meal Plan",  icon: "restaurant_menu" },
+  { href: "/plans",      label: "Plans",      icon: "workspace_premium" },
+  { href: "/chat",       label: "FitBot",     icon: "smart_toy" },
+  { href: "/profile",    label: "Profile",    icon: "person" },
 ];
+
 
 export function Navbar() {
   const pathname  = usePathname();
+  const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    // Global onboarding guard for protected routes
+    if (!loading && user && !user.onboarded) {
+      router.replace("/onboarding");
+    }
+  }, [user, loading, router]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);

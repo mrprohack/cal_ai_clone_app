@@ -30,6 +30,7 @@ export default defineSchema({
     ageYears: v.optional(v.number()),
     heightCm: v.optional(v.number()),
     weightKg: v.optional(v.number()),
+    onboarded: v.optional(v.boolean()),
     createdAt: v.number(),
     /** Subscription plan */
     plan: v.optional(
@@ -99,4 +100,40 @@ export default defineSchema({
     searchField: "name",
     filterFields: ["cat"],
   }),
+
+  /* ── Body Progress Photos ─────────────────────────────────────────── */
+  bodyPhotos: defineTable({
+    userId: v.id("users"),
+    /** ISO date string: "2026-03-20" */
+    date: v.string(),
+    /** Base64 thumbnail (small, stored for display) */
+    imageData: v.optional(v.string()),
+    /** AI analysis result as serialized JSON string */
+    analysis: v.optional(v.string()),
+    /** Week number tag e.g. "Week 1", "Week 4" */
+    weekLabel: v.optional(v.string()),
+    /** User notes for this check-in */
+    notes: v.optional(v.string()),
+    recordedAt: v.number(),
+  })
+    .index("by_user_date", ["userId", "date"])
+    .index("by_user", ["userId"]),
+
+  /* ── AI Meal Plans ────────────────────────────────────────────────── */
+  mealPlans: defineTable({
+    userId: v.id("users"),
+    /** ISO date of plan creation */
+    createdDate: v.string(),
+    /** Plan JSON from AI serialized as string */
+    planJson: v.string(),
+    /** Human-readable plan name */
+    planName: v.string(),
+    /** Calorie target used for generation */
+    calorieTarget: v.number(),
+    /** Whether the user has pinned/saved this plan */
+    isPinned: v.optional(v.boolean()),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_date", ["userId", "createdDate"]),
 });

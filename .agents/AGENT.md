@@ -87,6 +87,8 @@ If you add a new Convex module or function, update the **Key Convex Modules** ta
 web/
 ├── app/
 │   ├── layout.tsx                  # Root layout — fonts, Convex provider, Navbar
+│   ├── manifest.ts                 # PWA Web Manifest
+│   ├── icon.svg                    # PWA App Icon
 │   ├── globals.css                 # Design tokens (CSS variables), resets, animations
 │   ├── page.tsx                    # Landing / home page  (route: /)
 │   ├── page.module.css
@@ -97,6 +99,10 @@ web/
 │   │
 │   ├── signup/
 │   │   └── page.tsx                # Sign-up form (route: /signup)
+│   │
+│   ├── onboarding/
+│   │   ├── page.tsx                # Post-signup setup (route: /onboarding)
+│   │   └── Onboarding.module.css
 │   │
 │   ├── dashboard/
 │   │   ├── page.tsx                # Today overview (route: /dashboard)
@@ -109,6 +115,14 @@ web/
 │   ├── progress/
 │   │   ├── page.tsx                # Progress charts (route: /progress)
 │   │   └── Progress.module.css
+│   │
+│   ├── body-scan/
+│   │   ├── page.tsx                # Weekly body photo analyzer — AI vision (route: /body-scan)
+│   │   └── BodyScan.module.css
+│   │
+│   ├── meal-plan/
+│   │   ├── page.tsx                # 7-day AI meal planner (route: /meal-plan)
+│   │   └── MealPlan.module.css
 │   │
 │   ├── plans/
 │   │   ├── page.tsx                # Pricing — Free / Pro / Ultra (route: /plans)
@@ -125,6 +139,10 @@ web/
 │   ├── api/
 │   │   ├── analyze-meal/
 │   │   │   └── route.ts            # POST /api/analyze-meal — Groq vision analysis
+│   │   ├── analyze-body/
+│   │   │   └── route.ts            # POST /api/analyze-body — Groq body photo analysis
+│   │   ├── meal-plan/
+│   │   │   └── route.ts            # POST /api/meal-plan — AI 7-day meal plan generation
 │   │   └── chat/
 │   │       └── route.ts            # POST /api/chat — FitBot streaming chat
 │   │
@@ -231,6 +249,32 @@ Indexes: `by_user_date`, `by_user`
 
 Index: `search_name` (Search index on `name` with `cat` filter)
 
+### `bodyPhotos` table
+| Field | Type | Notes |
+|-------|------|-------|
+| `userId` | Id<"users"> | |
+| `date` | string | ISO date |
+| `imageData` | string? | Base64 thumbnail |
+| `analysis` | string? | AI analysis JSON |
+| `weekLabel` | string? | e.g. "Week 1" |
+| `notes` | string? | User notes |
+| `recordedAt` | number | Unix ms |
+
+Indexes: `by_user_date`, `by_user`
+
+### `mealPlans` table
+| Field | Type | Notes |
+|-------|------|-------|
+| `userId` | Id<"users"> | |
+| `createdDate` | string | ISO date |
+| `planJson` | string | Full plan JSON |
+| `planName` | string | Human-readable name |
+| `calorieTarget` | number | kcal goal used |
+| `isPinned` | boolean? | Pinned/saved |
+| `createdAt` | number | Unix ms |
+
+Indexes: `by_user`, `by_user_date`
+
 ---
 
 ## 6. CONVEX BACKEND FUNCTIONS
@@ -271,6 +315,23 @@ Index: `search_name` (Search index on `name` with `cat` filter)
 | `foods.list` | query | Get a predefined list of food items |
 | `foods.search` | query | Search foods by string query or filter by category |
 
+### Body Photos (`convex/bodyPhotos.ts`)
+| Function | Type | Description |
+|----------|------|-------------|
+| `bodyPhotos.savePhoto` | mutation | Save or update a body check-in with AI analysis |
+| `bodyPhotos.listPhotos` | query | List all photos newest-first |
+| `bodyPhotos.getWeeklyPhotos` | query | Get last N weeks of photos |
+| `bodyPhotos.removePhoto` | mutation | Delete a photo entry |
+
+### Meal Plans (`convex/mealPlans.ts`)
+| Function | Type | Description |
+|----------|------|-------------|
+| `mealPlans.savePlan` | mutation | Save a generated 7-day plan |
+| `mealPlans.listPlans` | query | List all plans for user |
+| `mealPlans.getLatestPlan` | query | Get most recent plan |
+| `mealPlans.togglePin` | mutation | Toggle pinned status |
+| `mealPlans.removePlan` | mutation | Delete a plan |
+
 ---
 
 ## 7. API ROUTES
@@ -280,6 +341,20 @@ Index: `search_name` (Search index on `name` with `cat` filter)
 - **AI:** Groq `meta-llama/llama-4-scout-17b-16e-instruct` (vision)
 - **Input:** `FormData` with `image` field (base64 or blob)
 - **Output:** JSON `{ name, confidence, servingSize, calories, proteinG, carbsG, fatG, notes }`
+- **Key:** `GROQ_API_KEY` env variable
+
+### `POST /api/analyze-body`
+- **Runtime:** Node.js
+- **AI:** Groq `meta-llama/llama-4-scout-17b-16e-instruct` (vision)
+- **Input:** JSON `{ imageBase64, mimeType?, previousAnalysis? }`
+- **Output:** JSON `{ bodyFat, muscleDefinition, visibleMuscleGroups, posture, estimatedBMICategory, fitnessLevel, strengths, areasForImprovement, weeklyChange, progressScore, notes, recommendations }`
+- **Key:** `GROQ_API_KEY` env variable
+
+### `POST /api/meal-plan`
+- **Runtime:** Node.js
+- **AI:** Groq `meta-llama/llama-4-scout-17b-16e-instruct`
+- **Input:** JSON `{ calorieGoal, proteinGoal, carbsGoal, fatGoal, preferences?, restrictions?, userName? }`
+- **Output:** Complete 7-day meal plan JSON with meals, shopping list, weekly totals
 - **Key:** `GROQ_API_KEY` env variable
 
 ### `POST /api/chat`
@@ -377,6 +452,8 @@ The `@/` alias resolves to `web/` root. Always use `@/convex/_generated/api` not
 | Today | `/dashboard` | `home` |
 | Log | `/log` | `restaurant` |
 | Progress | `/progress` | `trending_up` |
+| Body Scan | `/body-scan` | `body_system` |
+| Meal Plan | `/meal-plan` | `restaurant_menu` |
 | Plans | `/plans` | `workspace_premium` |
 | FitBot | `/chat` | `smart_toy` |
 | Profile | `/profile` | `person` |
@@ -484,6 +561,8 @@ Use this as a quick audit checklist. Every file in `web/` (excluding `_generated
 web/
 ├── app/
 │   ├── layout.tsx                  # Root layout — fonts, Convex provider, Navbar
+│   ├── manifest.ts                 # PWA Web Manifest
+│   ├── icon.svg                    # PWA App Icon
 │   ├── globals.css                 # Design tokens (CSS variables), resets, animations
 │   ├── page.tsx                    # Landing / home page  (route: /)
 │   ├── page.module.css
@@ -496,6 +575,10 @@ web/
 │   │
 │   ├── signup/
 │   │   └── page.tsx                # Sign-up form (route: /signup)
+│   │
+│   ├── onboarding/
+│   │   ├── page.tsx                # Post-signup setup (route: /onboarding)
+│   │   └── Onboarding.module.css
 │   │
 │   ├── dashboard/
 │   │   ├── page.tsx                # Today overview (route: /dashboard)
@@ -546,4 +629,4 @@ web/
     └── auth-context.tsx            # useAuth() hook — session token in localStorage
 ```
 
-> **Last audited:** 2026-03-20 · All files accounted for. Update this date whenever you audit the tree.
+> **Last audited:** 2026-03-20 · Added body-scan, meal-plan pages + API routes + Convex modules (bodyPhotos, mealPlans) + schema tables. Update this date whenever you audit the tree.

@@ -153,17 +153,37 @@ export default function ProgressPage() {
             <h1 className={styles.title}>Your Progress</h1>
             <p className={styles.subtitle}>Track your journey — every macro logged counts</p>
           </div>
-          <div className={styles.periodTabs} id="progress-period">
-            {(["7d", "30d", "90d"] as Period[]).map((p) => (
-              <button
-                key={p}
-                className={`${styles.periodTab} ${period === p ? styles.periodTabActive : ""}`}
-                onClick={() => setPeriod(p)}
-                id={`progress-period-${p}`}
-              >
-                {p}
-              </button>
-            ))}
+          <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap" }}>
+            <button
+              className={styles.periodTab}
+              style={{ display: "flex", gap: "6px", alignItems: "center", background: "var(--primary)", color: "#000", fontWeight: 700 }}
+              onClick={() => {
+                if (navigator.share) {
+                  navigator.share({
+                    title: "Cal AI Progress",
+                    text: `I'm on a ${stats?.streak || 0}-day streak on Cal AI! 🔥 Tracking my macros has never been easier.`,
+                    url: window.location.origin,
+                  }).catch(console.error);
+                } else {
+                  alert("Sharing is not supported on this browser.");
+                }
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>ios_share</span>
+              Share
+            </button>
+            <div className={styles.periodTabs} id="progress-period">
+              {(["7d", "30d", "90d"] as Period[]).map((p) => (
+                <button
+                  key={p}
+                  className={`${styles.periodTab} ${period === p ? styles.periodTabActive : ""}`}
+                  onClick={() => setPeriod(p)}
+                  id={`progress-period-${p}`}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 

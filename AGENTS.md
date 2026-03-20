@@ -32,9 +32,12 @@
 | `/` | `app/page.tsx` | Landing page |
 | `/login` | `app/login/page.tsx` | Login |
 | `/signup` | `app/signup/page.tsx` | Sign up |
+| `/onboarding` | `app/onboarding/page.tsx` | Post-signup profile setup |
 | `/dashboard` | `app/dashboard/page.tsx` | Today's overview |
 | `/log` | `app/log/page.tsx` | AI meal scanning + food log |
 | `/progress` | `app/progress/page.tsx` | Charts & trends |
+| `/body-scan` | `app/body-scan/page.tsx` | Weekly AI body photo analyzer |
+| `/meal-plan` | `app/meal-plan/page.tsx` | AI 7-day meal planner |
 | `/plans` | `app/plans/page.tsx` | Free / Pro / Ultra pricing |
 | `/profile` | `app/profile/page.tsx` | Goals, account, premium |
 | `/chat` | `app/chat/page.tsx` | FitBot AI coach |
@@ -50,6 +53,8 @@
 | `convex/meals.ts` | log, byDate, remove, getTodayMeals |
 | `convex/progress.ts` | progress CRUD |
 | `convex/foods.ts` | list, search |
+| `convex/bodyPhotos.ts` | savePhoto, listPhotos, getWeeklyPhotos, removePhoto |
+| `convex/mealPlans.ts` | savePlan, listPlans, getLatestPlan, togglePin, removePlan |
 
 ## Plans
 `free` (default) · `pro` ($9/mo) · `ultra` ($19/mo)  

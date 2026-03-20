@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery, useConvex } from "convex/react";
 import Link from "next/link";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -169,8 +169,10 @@ function Toast({ msg, type, visible }: { msg: string; type: "success" | "error";
    Main Page
 ───────────────────────────────────────────── */
 export default function ProfilePage() {
-  const { user, loading } = useAuth();
+  const { user, loading, signOut } = useAuth();
+  const convex = useConvex();
   const updateProfile = useMutation(api.users.updateProfile);
+  const doDeleteAccount = useMutation(api.users.deleteAccount);
 
   // Live plan from DB
   const userId = user?._id ? (user._id as unknown as Id<"users">) : null;
@@ -208,6 +210,8 @@ export default function ProfilePage() {
   const [toastMsg,   setToastMsg]   = useState("");
   const [toastType,  setToastType]  = useState<"success" | "error">("success");
   const [toastShow,  setToastShow]  = useState(false);
+  const [exporting,  setExporting]  = useState(false);
+  const [deleting,   setDeleting]   = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
 
   /* Hydrate from Convex user */
@@ -269,6 +273,40 @@ export default function ProfilePage() {
       showToast("Profile updated!", "success");
     } catch {
       showToast("Could not save change.", "error");
+    }
+  }
+
+  async function handleExport() {
+    if (!user?._id) return;
+    setExporting(true);
+    try {
+      const data = await convex.query(api.users.exportData, { userId: user._id as Id<"users"> });
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `cal_ai_export_${new Date().toISOString().split("T")[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast("Data exported!", "success");
+    } catch {
+      showToast("Failed to export data.", "error");
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    if (!window.confirm("Are you sure? This will permanently delete all your data and cannot be undone.")) return;
+    if (!user?._id) return;
+    setDeleting(true);
+    try {
+      await doDeleteAccount({ userId: user._id as Id<"users"> });
+      await signOut();
+      window.location.href = "/";
+    } catch {
+      showToast("Failed to delete account.", "error");
+      setDeleting(false);
     }
   }
 
@@ -439,10 +477,18 @@ export default function ProfilePage() {
                   <EditableField loading={loading} label="Gender" value={gender} id="profile-gender-field"
                     onSave={(v) => saveAccountField("gender", v)} />
                 </div>
-                <button className={styles.dangerBtn} id="profile-delete-account">
-                  <span className="material-symbols-outlined">delete_forever</span>
-                  Delete Account
-                </button>
+                
+                <h3 className={styles.panelTitle} style={{ marginTop: 24, paddingBottom: 12, borderBottom: "1px solid var(--border)", fontSize: "16px" }}>Data Management</h3>
+                <div style={{ display: "flex", gap: "12px", marginTop: "16px", flexWrap: "wrap" }}>
+                  <button className={styles.manageBtn} disabled={exporting} onClick={handleExport} id="profile-export-data" style={{ background: "var(--surface-elevated)", borderColor: "var(--border)", color: "var(--text)" }}>
+                    {exporting ? <span className={styles.spinner} /> : <span className="material-symbols-outlined">download</span>}
+                    {exporting ? "Exporting..." : "Export Data (JSON)"}
+                  </button>
+                  <button className={styles.dangerBtn} disabled={deleting} onClick={handleDeleteAccount} id="profile-delete-account">
+                    {deleting ? <span className={styles.spinner} style={{ borderColor: "rgba(239,68,68,0.3)", borderTopColor: "#ef4444" }} /> : <span className="material-symbols-outlined">delete_forever</span>}
+                    {deleting ? "Deleting..." : "Delete Account"}
+                  </button>
+                </div>
               </div>
             )}
 
