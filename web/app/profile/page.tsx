@@ -1,73 +1,352 @@
 "use client";
-export const dynamic = "force-dynamic";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
 import { Navbar } from "@/components/Navbar";
+import { useAuth } from "@/lib/auth-context";
 import styles from "./Profile.module.css";
 
 type Tab = "goals" | "account" | "notifications" | "premium";
+type SaveState = "idle" | "saving" | "done" | "error";
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: "goals",         label: "Goals",         icon: "track_changes" },
-  { id: "account",       label: "Account",        icon: "manage_accounts" },
-  { id: "notifications", label: "Notifications",  icon: "notifications" },
-  { id: "premium",       label: "Premium",        icon: "workspace_premium" },
+  { id: "goals",         label: "Goals",        icon: "track_changes"      },
+  { id: "account",       label: "Account",       icon: "manage_accounts"    },
+  { id: "notifications", label: "Notifications", icon: "notifications"      },
+  { id: "premium",       label: "Premium",       icon: "workspace_premium"  },
 ];
 
-export default function ProfilePage() {
-  const [tab, setTab] = useState<Tab>("goals");
+/* ─────────────────────────────────────────────
+   Skeleton shimmer block
+───────────────────────────────────────────── */
+function Skeleton({ w = "100%", h = "16px", radius = "8px", style }: { w?: string; h?: string; radius?: string; style?: React.CSSProperties }) {
+  return <div className={styles.skeleton} style={{ width: w, height: h, borderRadius: radius, ...style }} />;
+}
 
-  /* Goal state */
-  const [calories, setCalories]   = useState(2000);
-  const [protein,  setProtein]    = useState(150);
-  const [carbs,    setCarbs]      = useState(225);
-  const [fat,      setFat]        = useState(56);
-  const [weight,   setWeight]     = useState(75);
-  const [saved,    setSaved]      = useState(false);
+/* ─────────────────────────────────────────────
+   Inline editable field (account tab)
+───────────────────────────────────────────── */
+function EditableField({
+  label, value, id, onSave, type = "text", loading,
+}: {
+  label: string; value: string; id: string;
+  onSave: (v: string) => void; type?: string; loading?: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft,   setDraft]   = useState(value);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  function handleSave() {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  useEffect(() => { setDraft(value); }, [value]);
+  useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
+
+  function commit() { onSave(draft.trim() || value); setEditing(false); }
+  function cancel()  { setDraft(value); setEditing(false); }
+
+  if (loading) {
+    return (
+      <div className={styles.fieldRow} id={id}>
+        <Skeleton w="110px" h="13px" />
+        <Skeleton w="160px" h="13px" />
+      </div>
+    );
   }
 
   return (
+    <div className={styles.fieldRow} id={id}>
+      <span className={styles.fieldLabel}>{label}</span>
+      <div className={styles.fieldVal}>
+        {editing ? (
+          <>
+            <input
+              ref={inputRef}
+              type={type}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter")  commit();
+                if (e.key === "Escape") cancel();
+              }}
+              className={styles.fieldInput}
+            />
+            <button className={`${styles.editBtn} ${styles.editBtnConfirm}`} onClick={commit} title="Save">
+              <span className="material-symbols-outlined">check</span>
+            </button>
+            <button className={styles.editBtn} onClick={cancel} title="Cancel">
+              <span className="material-symbols-outlined">close</span>
+            </button>
+          </>
+        ) : (
+          <>
+            <span className={styles.fieldValueText}>{value || "—"}</span>
+            <button className={styles.editBtn} onClick={() => setEditing(true)} title="Edit">
+              <span className="material-symbols-outlined">edit</span>
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   Numeric goal stepper row
+───────────────────────────────────────────── */
+function GoalRow({
+  label, unit, val, setVal, min, max, step, icon, id, loading,
+}: {
+  label: string; unit: string; val: number; setVal: (v: number) => void;
+  min: number; max: number; step: number; icon: string; id: string; loading?: boolean;
+}) {
+  function nudge(delta: number) {
+    setVal(Math.min(max, Math.max(min, parseFloat((val + delta).toFixed(1)))));
+  }
+
+  if (loading) {
+    return (
+      <div className={styles.goalRow} id={id}>
+        <div className={styles.goalLeft}>
+          <Skeleton w="28px" h="28px" radius="50%" />
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <Skeleton w="100px" h="13px" />
+            <Skeleton w="50px"  h="11px" />
+          </div>
+        </div>
+        <div className={styles.goalRight}>
+          <Skeleton w="32px" h="32px" radius="50%" />
+          <Skeleton w="80px" h="20px" radius="6px" />
+          <Skeleton w="32px" h="32px" radius="50%" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.goalRow} id={id}>
+      <div className={styles.goalLeft}>
+        <span className={styles.goalEmoji}>{icon}</span>
+        <div>
+          <div className={styles.goalLabel}>{label}</div>
+          <div className={styles.goalUnit}>{unit}/day</div>
+        </div>
+      </div>
+      <div className={styles.goalRight}>
+        <button
+          className={styles.numBtn}
+          onClick={() => nudge(-step)}
+          disabled={val <= min}
+          aria-label={`Decrease ${label}`}
+        >−</button>
+        <span className={styles.goalVal}>{val}{unit}</span>
+        <button
+          className={styles.numBtn}
+          onClick={() => nudge(step)}
+          disabled={val >= max}
+          aria-label={`Increase ${label}`}
+        >+</button>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   Toast notification
+───────────────────────────────────────────── */
+function Toast({ msg, type, visible }: { msg: string; type: "success" | "error"; visible: boolean }) {
+  return (
+    <div className={`${styles.toast} ${styles[`toast_${type}`]} ${visible ? styles.toastVisible : ""}`}>
+      <span className="material-symbols-outlined">
+        {type === "success" ? "check_circle" : "error"}
+      </span>
+      {msg}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────
+   Main Page
+───────────────────────────────────────────── */
+export default function ProfilePage() {
+  const { user, loading } = useAuth();
+  const updateProfile = useMutation(api.users.updateProfile);
+
+  const [tab, setTab] = useState<Tab>("goals");
+
+  /* Goals */
+  const [calories, setCalories] = useState(2000);
+  const [protein,  setProtein]  = useState(150);
+  const [carbs,    setCarbs]    = useState(225);
+  const [fat,      setFat]      = useState(56);
+  const [weight,   setWeight]   = useState(75);
+
+  /* Account */
+  const [displayName, setDisplayName] = useState("");
+  const [userEmail,   setUserEmail]   = useState("");
+  const [heightCm,    setHeightCm]    = useState("");
+  const [ageYears,    setAgeYears]    = useState("");
+  const [gender,      setGender]      = useState("");
+
+  /* UI state */
+  const [saveState,  setSaveState]  = useState<SaveState>("idle");
+  const [toastMsg,   setToastMsg]   = useState("");
+  const [toastType,  setToastType]  = useState<"success" | "error">("success");
+  const [toastShow,  setToastShow]  = useState(false);
+  const toastTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  /* Hydrate from Convex user */
+  useEffect(() => {
+    if (!user) return;
+    setCalories(user.calorieGoal ?? 2000);
+    setProtein(user.proteinGoal  ?? 150);
+    setCarbs(user.carbsGoal      ?? 225);
+    setFat(user.fatGoal          ?? 56);
+    if (user.weightKg) setWeight(user.weightKg);
+    setDisplayName(user.name     ?? "");
+    setUserEmail(user.email      ?? "");
+    if (user.heightCm)  setHeightCm(String(user.heightCm));
+    if (user.ageYears)  setAgeYears(String(user.ageYears));
+    if (user.gender)    setGender(user.gender);
+  }, [user]);
+
+  function showToast(msg: string, type: "success" | "error") {
+    clearTimeout(toastTimer.current);
+    setToastMsg(msg);
+    setToastType(type);
+    setToastShow(true);
+    toastTimer.current = setTimeout(() => setToastShow(false), 3200);
+  }
+
+  async function handleSave() {
+    if (saveState === "saving") return;
+    setSaveState("saving");
+    try {
+      if (user?._id) {
+        await updateProfile({
+          userId:      user._id as Id<"users">,
+          calorieGoal: calories,
+          proteinGoal: protein,
+          carbsGoal:   carbs,
+          fatGoal:     fat,
+          weightKg:    weight,
+        });
+      }
+      setSaveState("done");
+      showToast("Goals saved successfully!", "success");
+      setTimeout(() => setSaveState("idle"), 2500);
+    } catch (e: unknown) {
+      setSaveState("error");
+      showToast(e instanceof Error ? e.message : "Failed to save goals.", "error");
+      setTimeout(() => setSaveState("idle"), 3000);
+    }
+  }
+
+  async function saveAccountField(field: string, value: string) {
+    if (!user?._id) return;
+    const patch: Record<string, unknown> = { userId: user._id as Id<"users"> };
+    if (field === "name")     { patch.name     = value; setDisplayName(value); }
+    if (field === "heightCm") { patch.heightCm = Number(value); setHeightCm(value); }
+    if (field === "ageYears") { patch.ageYears = Number(value); setAgeYears(value); }
+    if (field === "gender")   { patch.gender   = value; setGender(value); }
+    try {
+      await updateProfile(patch as Parameters<typeof updateProfile>[0]);
+      showToast("Profile updated!", "success");
+    } catch {
+      showToast("Could not save change.", "error");
+    }
+  }
+
+  const initials = displayName.trim()
+    .split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+
+  /* ── Render ── */
+  return (
     <div className={styles.page}>
       <Navbar />
+
+      {/* Toast */}
+      <Toast msg={toastMsg} type={toastType} visible={toastShow} />
+
       <div className={styles.container}>
-        {/* Profile card */}
+
+        {/* ── Profile hero card ── */}
         <div className={styles.profileCard} id="profile-card">
           <div className={styles.avatarWrap}>
             <div className={styles.avatar}>
-              <span className="material-symbols-outlined">person</span>
+              {loading
+                ? <Skeleton w="80px" h="80px" radius="50%" />
+                : <span style={{ fontWeight: 900, fontSize: "1.6rem", letterSpacing: "-0.02em" }}>
+                    {initials || "?"}
+                  </span>
+              }
             </div>
-            <button className={styles.avatarEditBtn} id="profile-edit-avatar">
-              <span className="material-symbols-outlined">photo_camera</span>
-            </button>
+            {!loading && (
+              <button className={styles.avatarEditBtn} id="profile-edit-avatar" title="Change photo">
+                <span className="material-symbols-outlined">photo_camera</span>
+              </button>
+            )}
           </div>
+
           <div className={styles.profileInfo}>
-            <h2 className={styles.profileName}>Champ ✌️</h2>
-            <p className={styles.profileEmail}>champ@calfuel.ai</p>
-            <div className={styles.profileBadges}>
-              <span className={styles.badge} style={{ background: "rgba(16,229,107,0.15)", color: "var(--accent-green)" }}>
-                🔥 7-Day Streak
-              </span>
-              <span className={styles.badge} style={{ background: "rgba(139,92,246,0.15)", color: "var(--accent-purple)" }}>
-                ⭐ Pro Member
-              </span>
-              <span className={styles.badge} style={{ background: "rgba(59,130,246,0.15)", color: "var(--primary-light)" }}>
-                💪 Protein Champion
-              </span>
-            </div>
+            {loading ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <Skeleton w="180px" h="22px" radius="6px" />
+                <Skeleton w="130px" h="14px" radius="6px" />
+                <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                  <Skeleton w="90px" h="22px" radius="100px" />
+                  <Skeleton w="80px" h="22px" radius="100px" />
+                  <Skeleton w="110px" h="22px" radius="100px" />
+                </div>
+              </div>
+            ) : (
+              <>
+                <h2 className={styles.profileName}>{displayName || "Champ"} ✌️</h2>
+                <p className={styles.profileEmail}>{userEmail}</p>
+                <div className={styles.profileBadges}>
+                  <span className={styles.badge} style={{ background: "rgba(16,229,107,0.15)", color: "var(--accent-green)" }}>
+                    🔥 7-Day Streak
+                  </span>
+                  <span className={styles.badge} style={{ background: "rgba(139,92,246,0.15)", color: "var(--accent-purple)" }}>
+                    ⭐ Pro Member
+                  </span>
+                  <span className={styles.badge} style={{ background: "rgba(59,130,246,0.15)", color: "var(--primary-light)" }}>
+                    💪 Protein Champion
+                  </span>
+                </div>
+              </>
+            )}
           </div>
+
           <div className={styles.profileStats}>
-            <div className={styles.profileStat}><span className={styles.profileStatNum}>23</span><span className={styles.profileStatLbl}>Days Logged</span></div>
-            <div className={styles.profileStat}><span className={styles.profileStatNum}>142</span><span className={styles.profileStatLbl}>Meals Scanned</span></div>
-            <div className={styles.profileStat}><span className={styles.profileStatNum}>4.2kg</span><span className={styles.profileStatLbl}>Lost</span></div>
+            {loading ? (
+              <>
+                <div className={styles.profileStat}><Skeleton w="40px" h="24px" radius="6px" /><Skeleton w="60px" h="11px" radius="4px" style={{ marginTop: 6 }} /></div>
+                <div className={styles.profileStat}><Skeleton w="40px" h="24px" radius="6px" /><Skeleton w="70px" h="11px" radius="4px" style={{ marginTop: 6 }} /></div>
+                <div className={styles.profileStat}><Skeleton w="50px" h="24px" radius="6px" /><Skeleton w="80px" h="11px" radius="4px" style={{ marginTop: 6 }} /></div>
+              </>
+            ) : (
+              <>
+                <div className={styles.profileStat}>
+                  <span className={styles.profileStatNum}>—</span>
+                  <span className={styles.profileStatLbl}>Days Logged</span>
+                </div>
+                <div className={styles.profileStat}>
+                  <span className={styles.profileStatNum}>—</span>
+                  <span className={styles.profileStatLbl}>Meals Scanned</span>
+                </div>
+                <div className={styles.profileStat}>
+                  <span className={styles.profileStatNum}>{weight} kg</span>
+                  <span className={styles.profileStatLbl}>Current Weight</span>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
+        {/* ── Main content grid ── */}
         <div className={styles.mainGrid}>
-          {/* Tabs */}
+
+          {/* Sidebar tabs */}
           <nav className={styles.tabs} id="profile-tabs">
             {TABS.map((t) => (
               <button
@@ -82,69 +361,65 @@ export default function ProfilePage() {
             ))}
           </nav>
 
-          {/* Tab panels */}
+          {/* Panel */}
           <div className={styles.panel}>
+
+            {/* ── Goals ── */}
             {tab === "goals" && (
               <div className={styles.goalsPanel}>
                 <h3 className={styles.panelTitle}>Nutrition Goals</h3>
                 <p className={styles.panelSub}>Fine-tune your daily targets. FitBot adapts its advice accordingly.</p>
 
                 <div className={styles.goalsList}>
-                  {[
-                    { label: "Daily Calories", unit: "kcal", val: calories, set: setCalories, min: 1200, max: 4000, step: 50, icon: "🔥" },
-                    { label: "Protein",         unit: "g",    val: protein,  set: setProtein,  min: 40,   max: 300,  step: 5,  icon: "💪" },
-                    { label: "Carbohydrates",   unit: "g",    val: carbs,    set: setCarbs,    min: 50,   max: 500,  step: 5,  icon: "🌾" },
-                    { label: "Fat",             unit: "g",    val: fat,      set: setFat,      min: 20,   max: 200,  step: 2,  icon: "🥑" },
-                    { label: "Body Weight",     unit: "kg",   val: weight,   set: setWeight,   min: 30,   max: 200,  step: 0.5,icon: "⚖️" },
-                  ].map((g) => (
-                    <div key={g.label} className={styles.goalRow} id={`profile-goal-${g.label.toLowerCase().replace(/\s+/g,"-")}`}>
-                      <div className={styles.goalLeft}>
-                        <span className={styles.goalEmoji}>{g.icon}</span>
-                        <div>
-                          <div className={styles.goalLabel}>{g.label}</div>
-                          <div className={styles.goalUnit}>{g.unit}/day</div>
-                        </div>
-                      </div>
-                      <div className={styles.goalRight}>
-                        <button className={styles.numBtn} onClick={() => g.set(Math.max(g.min, g.val - g.step))}>−</button>
-                        <span className={styles.goalVal}>{g.val}{g.unit}</span>
-                        <button className={styles.numBtn} onClick={() => g.set(Math.min(g.max, g.val + g.step))}>+</button>
-                      </div>
-                    </div>
-                  ))}
+                  <GoalRow loading={loading} label="Daily Calories" unit="kcal" val={calories} setVal={setCalories} min={1200} max={4000}  step={50}  icon="🔥" id="profile-goal-daily-calories" />
+                  <GoalRow loading={loading} label="Protein"        unit="g"    val={protein}  setVal={setProtein}  min={40}   max={300}   step={5}   icon="💪" id="profile-goal-protein" />
+                  <GoalRow loading={loading} label="Carbohydrates"  unit="g"    val={carbs}    setVal={setCarbs}    min={50}   max={500}   step={5}   icon="🌾" id="profile-goal-carbohydrates" />
+                  <GoalRow loading={loading} label="Fat"            unit="g"    val={fat}      setVal={setFat}      min={20}   max={200}   step={2}   icon="🥑" id="profile-goal-fat" />
+                  <GoalRow loading={loading} label="Body Weight"    unit="kg"   val={weight}   setVal={setWeight}   min={30}   max={200}   step={0.5} icon="⚖️" id="profile-goal-body-weight" />
                 </div>
 
-                <button className={`${styles.saveBtn} ${saved ? styles.saveBtnDone : ""}`} onClick={handleSave} id="profile-save-goals">
-                  {saved
-                    ? <><span className="material-symbols-outlined">check</span>Saved!</>
-                    : <><span className="material-symbols-outlined">save</span>Save Goals</>
-                  }
+                <button
+                  className={`${styles.saveBtn} ${styles[`saveBtn_${saveState}`]}`}
+                  onClick={handleSave}
+                  id="profile-save-goals"
+                  disabled={saveState === "saving" || loading}
+                >
+                  {saveState === "saving" && (
+                    <span className={styles.spinner} />
+                  )}
+                  {saveState === "done" && (
+                    <><span className="material-symbols-outlined">check</span>Saved!</>
+                  )}
+                  {saveState === "error" && (
+                    <><span className="material-symbols-outlined">error</span>Try Again</>
+                  )}
+                  {saveState === "idle" && (
+                    <><span className="material-symbols-outlined">save</span>Save Goals</>
+                  )}
                 </button>
               </div>
             )}
 
+            {/* ── Account ── */}
             {tab === "account" && (
               <div className={styles.accountPanel}>
                 <h3 className={styles.panelTitle}>Account Details</h3>
                 <div className={styles.fieldList}>
-                  {[
-                    { label: "Display Name",  val: "Champ",                     id: "profile-name-field"  },
-                    { label: "Email",         val: "champ@calfuel.ai",           id: "profile-email-field" },
-                    { label: "Date of Birth", val: "Jan 15, 1995",               id: "profile-dob-field"   },
-                    { label: "Height",        val: "178 cm",                     id: "profile-height-field"},
-                    { label: "Activity Level",val: "Moderately Active (4x/wk)",  id: "profile-activity-field" },
-                    { label: "Goal",          val: "Lose weight, maintain muscle",id: "profile-goal-field" },
-                  ].map((f) => (
-                    <div key={f.label} className={styles.fieldRow} id={f.id}>
-                      <span className={styles.fieldLabel}>{f.label}</span>
-                      <div className={styles.fieldVal}>
-                        <span>{f.val}</span>
-                        <button className={styles.editBtn}>
-                          <span className="material-symbols-outlined">edit</span>
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                  <EditableField loading={loading} label="Display Name" value={displayName} id="profile-name-field"
+                    onSave={(v) => saveAccountField("name", v)} />
+                  <div className={styles.fieldRow} id="profile-email-field">
+                    {loading
+                      ? <><Skeleton w="100px" h="13px" /><Skeleton w="150px" h="13px" /></>
+                      : <><span className={styles.fieldLabel}>Email</span>
+                          <div className={styles.fieldVal}><span className={styles.fieldValueText}>{userEmail}</span></div></>
+                    }
+                  </div>
+                  <EditableField loading={loading} label="Age (years)" value={ageYears} id="profile-age-field" type="number"
+                    onSave={(v) => saveAccountField("ageYears", v)} />
+                  <EditableField loading={loading} label="Height (cm)" value={heightCm} id="profile-height-field" type="number"
+                    onSave={(v) => saveAccountField("heightCm", v)} />
+                  <EditableField loading={loading} label="Gender" value={gender} id="profile-gender-field"
+                    onSave={(v) => saveAccountField("gender", v)} />
                 </div>
                 <button className={styles.dangerBtn} id="profile-delete-account">
                   <span className="material-symbols-outlined">delete_forever</span>
@@ -153,6 +428,7 @@ export default function ProfilePage() {
               </div>
             )}
 
+            {/* ── Notifications ── */}
             {tab === "notifications" && (
               <div className={styles.notifPanel}>
                 <h3 className={styles.panelTitle}>Notifications</h3>
@@ -163,7 +439,7 @@ export default function ProfilePage() {
                   { label: "FitBot Tips",               sub: "Daily AI nutrition tip",                    on: false },
                   { label: "New Feature Announcements", sub: "Stay up to date with CalAI",                on: false },
                 ].map((n) => (
-                  <div key={n.label} className={styles.notifRow} id={`profile-notif-${n.label.toLowerCase().replace(/\s+/g,"-")}`}>
+                  <div key={n.label} className={styles.notifRow} id={`profile-notif-${n.label.toLowerCase().replace(/\s+/g, "-")}`}>
                     <div>
                       <div className={styles.notifLabel}>{n.label}</div>
                       <div className={styles.notifSub}>{n.sub}</div>
@@ -177,6 +453,7 @@ export default function ProfilePage() {
               </div>
             )}
 
+            {/* ── Premium ── */}
             {tab === "premium" && (
               <div className={styles.premiumPanel}>
                 <div className={styles.premiumBanner}>
