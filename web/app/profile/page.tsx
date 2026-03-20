@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
+import Link from "next/link";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Navbar } from "@/components/Navbar";
@@ -171,6 +172,21 @@ export default function ProfilePage() {
   const { user, loading } = useAuth();
   const updateProfile = useMutation(api.users.updateProfile);
 
+  // Live plan from DB
+  const userId = user?._id ? (user._id as unknown as Id<"users">) : null;
+  const planInfo = useQuery(
+    api.users.getUserPlan,
+    userId ? { userId } : "skip"
+  );
+  const currentPlan = (planInfo?.plan ?? "free") as "free" | "pro" | "ultra";
+
+  const PLAN_META = {
+    free:  { label: "Free",  color: "var(--text-muted)",    icon: "emoji_nature",       glow: "rgba(77,96,117,.15)"   },
+    pro:   { label: "Pro",   color: "var(--primary-light)", icon: "bolt",               glow: "rgba(59,150,245,.15)"  },
+    ultra: { label: "Ultra", color: "#c084fc",              icon: "rocket_launch",      glow: "rgba(168,85,247,.15)"  },
+  } as const;
+  const meta = PLAN_META[currentPlan];
+
   const [tab, setTab] = useState<Tab>("goals");
 
   /* Goals */
@@ -306,9 +322,11 @@ export default function ProfilePage() {
                   <span className={styles.badge} style={{ background: "rgba(16,229,107,0.15)", color: "var(--accent-green)" }}>
                     🔥 7-Day Streak
                   </span>
-                  <span className={styles.badge} style={{ background: "rgba(139,92,246,0.15)", color: "var(--accent-purple)" }}>
-                    ⭐ Pro Member
-                  </span>
+                  {/* Live plan badge — links to /plans */}
+                  <Link href="/plans" className={styles.badge} style={{ background: meta.glow, color: meta.color, textDecoration: "none" }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 13 }}>{meta.icon}</span>
+                    {meta.label} Plan
+                  </Link>
                   <span className={styles.badge} style={{ background: "rgba(59,130,246,0.15)", color: "var(--primary-light)" }}>
                     💪 Protein Champion
                   </span>
@@ -457,28 +475,76 @@ export default function ProfilePage() {
             {tab === "premium" && (
               <div className={styles.premiumPanel}>
                 <div className={styles.premiumBanner}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 48, color: "#f59e0b" }}>workspace_premium</span>
-                  <h3 className={styles.premiumTitle}>You're on CalAI Pro ⭐</h3>
-                  <p className={styles.premiumSub}>Renews on April 18, 2025 · $9.99/month</p>
+                  <span className="material-symbols-outlined" style={{ fontSize: 48, color: meta.color }}>
+                    {meta.icon}
+                  </span>
+                  <h3 className={styles.premiumTitle}>
+                    {currentPlan === "free"
+                      ? "You're on the Free Plan"
+                      : `You're on CalAI ${meta.label} ⭐`
+                    }
+                  </h3>
+                  <p className={styles.premiumSub}>
+                    {currentPlan === "free"
+                      ? "Upgrade to unlock unlimited AI scans, advanced analytics and more."
+                      : currentPlan === "pro"
+                        ? "Pro plan active · $9/month"
+                        : "Ultra plan active · $19/month"
+                    }
+                  </p>
                 </div>
-                <div className={styles.premiumFeatures}>
-                  {[
-                    "Unlimited AI meal scans",
-                    "FitBot personalised coaching",
-                    "Advanced macro analytics",
-                    "Progress photo storage (unlimited)",
-                    "Custom goal setting",
-                    "Priority support",
-                  ].map((f) => (
-                    <div key={f} className={styles.premiumFeature}>
-                      <span className="material-symbols-outlined" style={{ color: "var(--accent-green)" }}>check_circle</span>
-                      {f}
-                    </div>
-                  ))}
+
+                {currentPlan !== "free" && (
+                  <div className={styles.premiumFeatures}>
+                    {(currentPlan === "pro"
+                      ? [
+                          "Unlimited AI meal scans",
+                          "FitBot personalised coaching",
+                          "Advanced macro analytics",
+                          "Custom goal setting",
+                          "Progress charts",
+                          "Export CSV / PDF",
+                        ]
+                      : [
+                          "Everything in Pro",
+                          "Body scan AI analysis",
+                          "Weekly AI insights",
+                          "AI meal planning",
+                          "Priority AI responses",
+                          "24/7 dedicated support",
+                        ]
+                    ).map((f) => (
+                      <div key={f} className={styles.premiumFeature}>
+                        <span className="material-symbols-outlined" style={{ color: "var(--accent-green)" }}>check_circle</span>
+                        {f}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* CTA buttons */}
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  {currentPlan === "free" ? (
+                    <Link href="/plans" className={styles.manageBtn} id="profile-upgrade-btn"
+                      style={{ background: "var(--primary)", color: "#fff", boxShadow: "0 6px 24px rgba(59,150,245,.3)", textDecoration: "none" }}>
+                      <span className="material-symbols-outlined">rocket_launch</span>
+                      Upgrade Now
+                    </Link>
+                  ) : (
+                    <Link href="/plans" className={styles.manageBtn} id="profile-manage-subscription"
+                      style={{ textDecoration: "none" }}>
+                      <span className="material-symbols-outlined">workspace_premium</span>
+                      Manage Subscription
+                    </Link>
+                  )}
+                  {currentPlan !== "ultra" && (
+                    <Link href="/plans" className={styles.manageBtn} id="profile-view-plans"
+                      style={{ background: "var(--surface-elevated)", borderColor: "var(--border)", textDecoration: "none" }}>
+                      <span className="material-symbols-outlined">compare_arrows</span>
+                      View All Plans
+                    </Link>
+                  )}
                 </div>
-                <button className={styles.manageBtn} id="profile-manage-subscription">
-                  Manage Subscription
-                </button>
               </div>
             )}
           </div>

@@ -583,6 +583,9 @@
 .premiumFeature .material-symbols-outlined { font-size: 20px !important; }
 
 .manageBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   padding: 14px 28px;
   background: rgba(245,158,11,0.15);
   border: 1px solid rgba(245,158,11,0.4);
@@ -592,8 +595,10 @@
   font-weight: 800;
   color: #f59e0b;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.2s, opacity 0.2s, transform 0.15s;
   width: fit-content;
 }
 
-.manageBtn:hover { background: rgba(245,158,11,0.28); }
+.manageBtn:hover { background: rgba(245,158,11,0.28); transform: translateY(-1px); }
+.manageBtn:active { transform: scale(0.97); }
+.manageBtn .material-symbols-outlined { font-size: 18px !important; }

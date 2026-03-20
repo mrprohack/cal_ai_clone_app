@@ -31,6 +31,12 @@ export default defineSchema({
     heightCm: v.optional(v.number()),
     weightKg: v.optional(v.number()),
     createdAt: v.number(),
+    /** Subscription plan */
+    plan: v.optional(
+      v.union(v.literal("free"), v.literal("pro"), v.literal("ultra"))
+    ),
+    planActivatedAt: v.optional(v.number()),
+    planExpiresAt: v.optional(v.number()),
   })
     .index("by_email", ["email"]),
 

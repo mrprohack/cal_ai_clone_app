@@ -83,6 +83,33 @@ export const updateProfile = mutation({
   },
 });
 
+// ─── Plan management ─────────────────────────────────────────────────────────
+
+export const updatePlan = mutation({
+  args: {
+    plan: v.union(v.literal("free"), v.literal("pro"), v.literal("ultra")),
+  },
+  handler: async (ctx, { plan }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthenticated");
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", identity.subject))
+      .unique();
+    if (!user) throw new Error("User not found");
+
+    await ctx.db.patch(user._id, {
+      plan,
+      planActivatedAt: Date.now(),
+      // Free plan never expires; paid plans expire after 30 days in this demo
+      planExpiresAt: plan === "free" ? undefined : Date.now() + 30 * 24 * 60 * 60 * 1000,
+    });
+
+    return { plan };
+  },
+});
+
 // ─── Calorie Target Calculator ────────────────────────────────────────────
 // Simple Mifflin-St Jeor estimate (server-side helper)
 

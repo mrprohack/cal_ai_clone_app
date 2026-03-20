@@ -19,6 +19,12 @@ export default defineSchema({
     dailyCalorieTarget: v.optional(v.number()),
     dailyProteinTarget: v.optional(v.number()),
     weekStartDay: v.optional(v.number()), // 0=Sun, 1=Mon
+    // Subscription plan
+    plan: v.optional(
+      v.union(v.literal("free"), v.literal("pro"), v.literal("ultra"))
+    ),
+    planExpiresAt: v.optional(v.number()), // unix ms — null = never expires (free)
+    planActivatedAt: v.optional(v.number()),
   }).index("by_clerk_id", ["clerkId"]),
 
   meals: defineTable({
