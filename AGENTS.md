@@ -17,6 +17,7 @@
 ---
 
 ## TL;DR
+- **Type:** SaaS product
 - **Focus:** `web/` directory only (Next.js 14 app)
 - **DB/Backend:** `web/convex/` — Convex real-time database
 - **AI:** Groq Llama 4 Vision via `/api/analyze-meal`
@@ -39,7 +40,7 @@
 | `/chat` | `app/chat/page.tsx` | FitBot AI coach |
 
 ## DB Tables (web/convex/schema.ts)
-`users` · `sessions` · `meals` · `progress`
+`users` · `sessions` · `meals` · `progress` · `foods`
 
 ## Key Convex Modules
 | File | Exports |
@@ -48,6 +49,7 @@
 | `convex/users.ts` | getById, updateProfile, updatePlan, getUserPlan |
 | `convex/meals.ts` | log, byDate, remove, getTodayMeals |
 | `convex/progress.ts` | progress CRUD |
+| `convex/foods.ts` | list, search |
 
 ## Plans
 `free` (default) · `pro` ($9/mo) · `ultra` ($19/mo)  

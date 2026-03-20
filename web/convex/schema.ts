@@ -85,4 +85,18 @@ export default defineSchema({
   })
     .index("by_user_date", ["userId", "date"])
     .index("by_user", ["userId"]),
+
+  /* ── Foods (Quick Add) ────────────────────────────────────────────── */
+  foods: defineTable({
+    name: v.string(),
+    cals: v.number(),
+    protein: v.number(),
+    carbs: v.number(),
+    fat: v.number(),
+    emoji: v.string(),
+    cat: v.string(),
+  }).searchIndex("search_name", {
+    searchField: "name",
+    filterFields: ["cat"],
+  }),
 });

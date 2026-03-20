@@ -31,23 +31,19 @@ const MEAL_TYPES = [
 
 type MealTypeId = typeof MEAL_TYPES[number]["id"];
 
-const FOOD_CATEGORIES = ["All", "Protein", "Carbs", "Fats", "Dairy", "Fruits"] as const;
+const FOOD_CATEGORIES = ["All", "Protein", "Carbs", "Fats", "Dairy", "Fruits", "Vegetables", "Snacks", "Drinks"] as const;
 type FoodCategory = typeof FOOD_CATEGORIES[number];
 
-const QUICK_FOODS = [
-  { name: "Chicken Breast", cals: 165, protein: 31, carbs: 0,  fat: 3,  emoji: "🍗", cat: "Protein" },
-  { name: "Salmon (150g)",  cals: 280, protein: 39, carbs: 0,  fat: 13, emoji: "🐟", cat: "Protein" },
-  { name: "Whole Egg",      cals: 78,  protein: 6,  carbs: 1,  fat: 5,  emoji: "🥚", cat: "Protein" },
-  { name: "Cottage Cheese", cals: 110, protein: 14, carbs: 6,  fat: 2,  emoji: "🧀", cat: "Protein" },
-  { name: "Brown Rice",     cals: 216, protein: 5,  carbs: 45, fat: 1,  emoji: "🍚", cat: "Carbs"   },
-  { name: "Oatmeal (1 cup)",cals: 166, protein: 6,  carbs: 28, fat: 4,  emoji: "🥣", cat: "Carbs"   },
-  { name: "Sweet Potato",   cals: 112, protein: 2,  carbs: 26, fat: 0,  emoji: "🍠", cat: "Carbs"   },
-  { name: "Avocado (½)",    cals: 120, protein: 1,  carbs: 6,  fat: 11, emoji: "🥑", cat: "Fats"    },
-  { name: "Almonds (30g)",  cals: 174, protein: 6,  carbs: 6,  fat: 15, emoji: "🌰", cat: "Fats"    },
-  { name: "Greek Yogurt",   cals: 120, protein: 17, carbs: 9,  fat: 0,  emoji: "🥛", cat: "Dairy"   },
-  { name: "Protein Shake",  cals: 180, protein: 30, carbs: 12, fat: 3,  emoji: "💪", cat: "Protein" },
-  { name: "Banana",         cals: 89,  protein: 1,  carbs: 23, fat: 0,  emoji: "🍌", cat: "Fruits"  },
-];
+export interface DBFood {
+  _id?: string;
+  name: string;
+  cals: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  emoji: string;
+  cat?: string;
+}
 
 type ScanState = "idle" | "uploading" | "analysing" | "done" | "error";
 
@@ -178,7 +174,7 @@ function CameraFrame() {
 
 /** Quick-add food card — clicking just selects the food; parent opens qty picker */
 function FoodCard({ food, onSelect, isSelected, adding }: {
-  food: typeof QUICK_FOODS[number];
+  food: DBFood;
   onSelect: () => void;
   isSelected: boolean;
   adding: boolean;
@@ -218,8 +214,8 @@ function FoodCard({ food, onSelect, isSelected, adding }: {
 type QtyMode = "servings" | "grams";
 
 function QuantityPicker({ food, onConfirm, onCancel, saving }: {
-  food: typeof QUICK_FOODS[number];
-  onConfirm: (food: typeof QUICK_FOODS[number], qty: number, mode: QtyMode) => void;
+  food: DBFood;
+  onConfirm: (food: DBFood, qty: number, mode: QtyMode) => void;
   onCancel: () => void;
   saving: boolean;
 }) {
@@ -374,7 +370,7 @@ export default function LogPage() {
   const [scanError, setScanError]   = useState<string | null>(null);
   const [query, setQuery]           = useState("");
   const [foodCat, setFoodCat]       = useState<FoodCategory>("All");
-  const [pendingFood, setPendingFood] = useState<typeof QUICK_FOODS[number] | null>(null);
+  const [pendingFood, setPendingFood] = useState<DBFood | null>(null);
   const [showManual, setShowManual] = useState(false);
   const [form, setForm]             = useState<ManualForm>(emptyForm);
   const [saving, setSaving]         = useState(false);
@@ -420,11 +416,8 @@ export default function LogPage() {
   const calPct       = Math.min((todayTotals.cals / calorieGoal) * 100, 100);
   const isOverGoal   = todayTotals.cals > calorieGoal;
 
-  const displayedFoods = QUICK_FOODS.filter((f) => {
-    const matchCat   = foodCat === "All" || f.cat === foodCat;
-    const matchQuery = f.name.toLowerCase().includes(query.toLowerCase());
-    return matchCat && matchQuery;
-  });
+  const displayedFoodsResult = useQuery(api.foods.search, { searchQuery: query, category: foodCat });
+  const displayedFoods: DBFood[] = displayedFoodsResult ?? [];
 
   const activeMealMeta = MEAL_TYPES.find((m) => m.id === mealType)!;
 
@@ -446,14 +439,13 @@ export default function LogPage() {
     });
   }
 
-  /* ── Quick-add: open quantity picker ── */
-  function openQtyPicker(food: typeof QUICK_FOODS[number]) {
+  function openQtyPicker(food: DBFood) {
     setPendingFood(food);
   }
 
   /* ── Confirmed add with quantity ── */
   const handleConfirmAdd = useCallback(async (
-    food: typeof QUICK_FOODS[number],
+    food: DBFood,
     multiplier: number,
     mode: QtyMode
   ) => {

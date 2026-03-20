@@ -10,6 +10,7 @@
 
 import type * as auth from "../auth.js";
 import type * as daily from "../daily.js";
+import type * as foods from "../foods.js";
 import type * as meals from "../meals.js";
 import type * as progress from "../progress.js";
 import type * as seed from "../seed.js";
@@ -24,6 +25,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   daily: typeof daily;
+  foods: typeof foods;
   meals: typeof meals;
   progress: typeof progress;
   seed: typeof seed;

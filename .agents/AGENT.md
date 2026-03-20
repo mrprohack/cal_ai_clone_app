@@ -48,7 +48,7 @@ If you add a new Convex module or function, update the **Key Convex Modules** ta
 ## 1. PROJECT IDENTITY
 
 **Name:** Cal AI  
-**Type:** AI-powered nutrition & calorie tracking web application  
+**Type:** AI-powered nutrition & calorie tracking SaaS product  
 **Stack:** Next.js 14 · Convex (backend/DB) · Groq Llama 4 Vision (AI) · Vanilla CSS Modules  
 **Root directory (web):** `/home/mrpro/mygit/cal_ai_clone/web/`  
 **Dev server:** `http://localhost:3004`  
@@ -139,6 +139,7 @@ web/
 │   ├── auth.ts                     # signUp / signIn / signOut / getSessionUser
 │   ├── users.ts                    # getMe / getById / updateProfile / updatePlan / getUserPlan
 │   ├── meals.ts                    # log / byDate / remove / getTodayMeals
+│   ├── foods.ts                    # Quick Add foods listing and search
 │   ├── daily.ts                    # Daily summary helpers
 │   ├── progress.ts                 # Progress snapshots
 │   ├── seed.ts                     # Dev seed data
@@ -217,6 +218,19 @@ Indexes: `by_user_date`, `by_user`
 
 Indexes: `by_user_date`, `by_user`
 
+### `foods` table (Quick Add)
+| Field | Type | Notes |
+|-------|------|-------|
+| `name` | string | Food name |
+| `cals` | number | kcal |
+| `protein` | number | grams |
+| `carbs` | number | grams |
+| `fat` | number | grams |
+| `emoji` | string | |
+| `cat` | string | "Protein", "Carbs", etc. |
+
+Index: `search_name` (Search index on `name` with `cat` filter)
+
 ---
 
 ## 6. CONVEX BACKEND FUNCTIONS
@@ -250,6 +264,12 @@ Indexes: `by_user_date`, `by_user`
 | Function | Type | Description |
 |----------|------|-------------|
 | See progress.ts | — | Progress snapshot CRUD |
+
+### Foods (`convex/foods.ts`)
+| Function | Type | Description |
+|----------|------|-------------|
+| `foods.list` | query | Get a predefined list of food items |
+| `foods.search` | query | Search foods by string query or filter by category |
 
 ---
 
@@ -516,6 +536,7 @@ web/
 │   ├── auth.ts                     # signUp / signIn / signOut / getSessionUser
 │   ├── users.ts                    # getMe / getById / updateProfile / updatePlan / getUserPlan
 │   ├── meals.ts                    # log / byDate / remove / getTodayMeals
+│   ├── foods.ts                    # Quick Add foods listing and search
 │   ├── daily.ts                    # Daily summary helpers
 │   ├── progress.ts                 # Progress snapshots
 │   ├── seed.ts                     # Dev seed data
