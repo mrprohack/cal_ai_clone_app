@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { useAuth } from "@/lib/auth-context";
 import { Navbar } from "@/components/Navbar";
 import styles from "./Chat.module.css";
 
@@ -36,11 +39,32 @@ function renderMd(text: string) {
 }
 
 export default function ChatPage() {
+  const { user } = useAuth();
+  const userId = user?._id as any;
+
+  // Dates for context
+  const todayDate = new Date();
+  const toDate = todayDate.toISOString().split("T")[0];
+  const lastMonthDate = new Date();
+  lastMonthDate.setDate(lastMonthDate.getDate() - 30);
+  const fromDate = lastMonthDate.toISOString().split("T")[0];
+
+  const todayMeals = useQuery(api.meals.byDate, userId ? { userId, date: toDate } : "skip");
+  const pastMeals = useQuery(api.meals.range, userId ? { userId, fromDate, toDate } : "skip");
+  const stats = useQuery(api.progress.getStats, userId ? { userId, fromDate, toDate } : "skip");
+
+  // Calculate today's totals
+  const todayTotals = (todayMeals || []).reduce((acc: any, m: any) => ({
+    c: acc.c + (m.calories || 0),
+    p: acc.p + (m.proteinG || 0),
+    cb: acc.cb + (m.carbsG || 0),
+    f: acc.f + (m.fatG || 0),
+  }), { c: 0, p: 0, cb: 0, f: 0 });
+
   const [messages, setMessages] = useState<Message[]>(INIT_MESSAGES);
   const [input, setInput]       = useState("");
   const [streaming, setStreaming] = useState(false);
   const endRef                  = useRef<HTMLDivElement>(null);
-  // Keep a mutable ref to the conversation history sent to the API
   const historyRef = useRef<{ role: string; content: string }[]>([]);
 
   useEffect(() => {
@@ -66,11 +90,23 @@ export default function ChatPage() {
     const botTs = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     setMessages((m) => [...m, { role: "bot", text: "", ts: botTs }]);
 
+    // Build hidden context prompt
+    const contextPrompt = user ? `
+      - Daily calorie goal: ${user.calorieGoal || 2000} kcal | consumed today: ${Math.round(todayTotals.c)} kcal
+      - Protein goal: ${user.proteinGoal || 150}g | consumed today: ${Math.round(todayTotals.p)}g
+      - Carbs goal: ${user.carbsGoal || 225}g | consumed today: ${Math.round(todayTotals.cb)}g
+      - Fat goal: ${user.fatGoal || 65}g | consumed today: ${Math.round(todayTotals.f)}g
+      - Current Weight: ${user.weightKg ? user.weightKg + "kg" : "Not Provided"}
+      - Gender/Age: ${user.gender || "Unknown"}, ${user.ageYears || "Unknown"}
+      - 30-Day Info: logged ${stats?.daysLogged || 0} days, avg ${stats?.avgCalories || 0} kcal/day, current streak ${stats?.streak || 0}.
+      - Some recent meals: ${pastMeals?.slice(-10).map((m: any) => `${m.name} (${m.calories}kcal)`).join(", ") || "None"}
+    ` : "";
+
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: historyRef.current }),
+        body: JSON.stringify({ messages: historyRef.current, contextPrompt }),
       });
 
       if (!res.ok || !res.body) {
@@ -159,10 +195,10 @@ export default function ChatPage() {
           <div className={styles.todaySnap}>
             <div className={styles.snapTitle}>Today&apos;s Snapshot</div>
             {[
-              { label: "Calories",  val: "1,240 / 2,000", icon: "🔥" },
-              { label: "Protein",   val: "92 / 150g",      icon: "💪" },
-              { label: "Carbs",     val: "145 / 225g",     icon: "🌾" },
-              { label: "Fat",       val: "38 / 56g",       icon: "🥑" },
+              { label: "Calories",  val: `${Math.round(todayTotals.c)} / ${user?.calorieGoal || 2000}`, icon: "🔥" },
+              { label: "Protein",   val: `${Math.round(todayTotals.p)} / ${user?.proteinGoal || 150}g`, icon: "💪" },
+              { label: "Carbs",     val: `${Math.round(todayTotals.cb)} / ${user?.carbsGoal || 225}g`, icon: "🌾" },
+              { label: "Fat",       val: `${Math.round(todayTotals.f)} / ${user?.fatGoal || 65}g`,    icon: "🥑" },
             ].map((s) => (
               <div key={s.label} className={styles.snapRow}>
                 <span className={styles.snapEmoji}>{s.icon}</span>

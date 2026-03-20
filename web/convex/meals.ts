@@ -54,3 +54,17 @@ export const getTodayMeals = query({
       .collect();
   },
 });
+
+/** Get all meals in a date range */
+export const range = query({
+  args: { userId: v.id("users"), fromDate: v.string(), toDate: v.string() },
+  handler: async (ctx, { userId, fromDate, toDate }) => {
+    return await ctx.db
+      .query("meals")
+      .withIndex("by_user_date", (q) => q.eq("userId", userId))
+      .filter((q) => q.gte(q.field("date"), fromDate))
+      .filter((q) => q.lte(q.field("date"), toDate))
+      .order("asc")
+      .collect();
+  },
+});

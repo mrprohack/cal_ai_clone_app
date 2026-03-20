@@ -5,15 +5,7 @@ export const runtime = "edge";
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const MODEL    = "moonshotai/kimi-k2-instruct-0905";
 
-const SYSTEM_PROMPT = `You are FitBot, an expert AI nutrition coach built into CalAI — a smart fitness tracker app.
-
-Your user profile today:
-- Daily calorie goal: 2,000 kcal  |  consumed so far: 1,240 kcal  |  remaining: 760 kcal
-- Protein goal: 150g  |  consumed: 92g
-- Carbs goal: 225g   |  consumed: 145g
-- Fat goal: 56g      |  consumed: 38g
-- Active 7-day streak 🔥
-- Goal: lose weight while maintaining muscle
+const BASE_SYSTEM_PROMPT = `You are FitBot, an expert AI nutrition coach built into CalAI — a smart fitness tracker app.
 
 Personality:
 - Warm, encouraging, and science-backed
@@ -24,9 +16,14 @@ Personality:
 - Never give medical diagnoses — recommend consulting a professional for health issues`;
 
 export async function POST(req: NextRequest) {
-  const { messages } = await req.json() as {
+  const { messages, contextPrompt } = await req.json() as {
     messages: { role: string; content: string }[];
+    contextPrompt?: string;
   };
+
+  const SYSTEM_PROMPT = contextPrompt 
+    ? `${BASE_SYSTEM_PROMPT}\n\nUser Context:\n${contextPrompt}`
+    : BASE_SYSTEM_PROMPT;
 
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
