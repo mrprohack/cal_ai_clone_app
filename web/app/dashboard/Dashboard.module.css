@@ -27,6 +27,12 @@
   transition: border-color 0.2s ease;
 }
 
+@media (max-width: 768px) {
+  .glassCard {
+    padding: 20px;
+  }
+}
+
 .glassCard:hover { border-color: rgba(59, 150, 245, 0.2); }
 .cardLabel { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 20px; display: flex; align-items: center; gap: 6px; }
 
@@ -44,8 +50,19 @@
 @media (max-width: 768px) { .greetTitle { font-size: 22px; } }
 .greetSub { font-size: 14px; color: var(--text-secondary); }
 
-.greetChips { display: flex; gap: 12px; flex-wrap: wrap; }
-@media (max-width: 768px) { .greetChips { gap: 8px; } }
+.greetChips {
+  display: flex;
+  gap: 12px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+  width: 100%;
+}
+.greetChips::-webkit-scrollbar { display: none; }
+
+@media (max-width: 768px) { .greetChips { gap: 10px; } }
 
 .statChip {
   display: flex;
@@ -55,6 +72,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 12px 18px;
+  flex-shrink: 0;
   transition: border-color 0.2s;
 }
 
@@ -62,6 +80,12 @@
 .statChipIcon { font-size: 22px; }
 .statChipValue { font-size: 16px; font-weight: 800; letter-spacing: -0.3px; }
 .statChipLabel { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 1px; }
+
+@media (max-width: 768px) {
+  .statChip { padding: 10px 14px; gap: 8px; }
+  .statChipIcon { font-size: 20px; }
+  .statChipValue { font-size: 14px; }
+}
 
 /* ── Main grid ── */
 .mainGrid {
@@ -75,6 +99,10 @@
 
 /* ── Ring card ── */
 .ringCard { padding: 28px; }
+
+@media (max-width: 768px) {
+  .ringCard { padding: 20px; }
+}
 
 .ringMacroWrap {
   display: flex;
@@ -240,17 +268,18 @@
 .sectionLink .material-symbols-outlined { font-size: 18px; }
 .sectionLink:hover { opacity: 0.75; }
 
-/* ── Meal row ── */
 .mealRow {
   display: flex;
-  gap: 20px;
+  gap: 16px;
   overflow-x: auto;
   padding: 16px 0 12px;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
+  margin: 0 -14px;
+  padding: 16px 14px 12px;
 }
 
-.mealRow::-webkit-scrollbar { height: 0; }
+.mealRow::-webkit-scrollbar { display: none; }
 
 .mealCard {
   min-width: 260px;
@@ -428,6 +457,11 @@
 
 .insight strong { font-size: 14px; font-weight: 800; display: block; margin-bottom: 4px; }
 .insight p { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+
+@media (max-width: 768px) {
+  .insight { padding: 12px; gap: 10px; }
+  .insightIcon { font-size: 20px !important; }
+}
 
 /* Weekly chart */
 .chartIcon { color: var(--primary); font-size: 16px !important; }
