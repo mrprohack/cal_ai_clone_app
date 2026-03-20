@@ -142,8 +142,9 @@ export default function DashboardPage() {
   const summary = useQuery(api.daily.getDailySummary, { date: today });
   const { user } = useAuth();
 
-  const calorieTarget = user?.calorieGoal ?? 2000;
-  const proteinTarget = user?.proteinGoal ?? 150;
+  const calorieTarget = (user as any)?.dailyCalorieTarget ?? 2000;
+  const proteinTarget = (user as any)?.dailyProteinTarget ?? 150;
+
   const consumed  = summary?.totalCalories ?? 0;
   const protein   = summary?.totalProtein  ?? 0;
   const carbs     = summary?.totalCarbs    ?? 0;
@@ -165,7 +166,7 @@ export default function DashboardPage() {
         <div className={styles.greetBar}>
           <div>
             <h1 className={styles.greetTitle}>
-              Good {getTimeOfDay()}, {user?.name?.split(" ")[0] || "Champ"} 👋
+              Good {getTimeOfDay()}, {(user as any)?.name?.split(" ")[0] || "Champ"} 👋
             </h1>
             <p className={styles.greetSub}>
               {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
@@ -260,7 +261,8 @@ export default function DashboardPage() {
           <div className={styles.glassCard}>
             <div className={styles.cardLabel}>Body Progress</div>
             <div className={styles.progressWeight}>
-              <span className={styles.progressWeightVal}>{user?.weightKg ? user.weightKg + " kg" : "--"}</span>
+              <span className={styles.progressWeightVal}>{(user as any)?.weight ? (user as any).weight + " kg" : "--"}</span>
+
               <span className={styles.progressWeightLabel}>Current Weight</span>
             </div>
             <div className={styles.progressPhotos}>
@@ -336,7 +338,7 @@ export default function DashboardPage() {
         <div className={styles.fabTooltip}>
           <div className={styles.fabTooltipTitle}>FitBot AI</div>
           <div className={styles.fabTooltipText}>
-            "{user?.name?.split(" ")[0] || "Hey"}! I'm ready to help with macros, workouts &amp; more."
+            "{(user as any)?.name?.split(" ")[0] || "Hey"}! I'm ready to help with macros, workouts &amp; more."
           </div>
           <div className={styles.fabTooltipArrow} />
         </div>

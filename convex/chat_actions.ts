@@ -39,8 +39,8 @@ export const sendMessage = action({
 
     const history = await ctx.runQuery(api.chat.getChatHistory, { limit: 20 });
 
-    const { default: OpenAI } = await import("openai");
-    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const { default: Groq } = await import("groq-sdk");
+    const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
     const userContext = user
       ? `\n\nUser context: Goal is to ${user.goalType ?? "maintain"}, daily calorie target: ${user.dailyCalorieTarget ?? "not set"} kcal, protein target: ${user.dailyProteinTarget ?? "not set"}g.`
@@ -56,7 +56,7 @@ export const sendMessage = action({
     ];
 
     const response = await client.chat.completions.create({
-      model: "gpt-4o",
+      model: "llama3-8b-8192",
       messages,
       max_tokens: 500,
       temperature: 0.7,

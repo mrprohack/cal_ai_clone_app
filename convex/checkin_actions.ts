@@ -11,8 +11,8 @@ export const analyzeProgressPhoto = action({
     previousPhotoStorageId: v.optional(v.id("_storage")),
   },
   handler: async (ctx, { checkInId, currentPhotoStorageId, previousPhotoStorageId }) => {
-    const { default: OpenAI } = await import("openai");
-    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const { default: Groq } = await import("groq-sdk");
+    const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
     const currentUrl = await ctx.storage.getUrl(currentPhotoStorageId);
     if (!currentUrl) throw new Error("Could not get current photo URL");
@@ -23,7 +23,7 @@ export const analyzeProgressPhoto = action({
       const prevUrl = await ctx.storage.getUrl(previousPhotoStorageId);
       if (prevUrl) {
         const diffResponse = await client.chat.completions.create({
-          model: "gpt-4o",
+          model: "llama-3.2-11b-vision-preview",
           messages: [
             {
               role: "user",
@@ -37,8 +37,8 @@ Focus on: muscle definition, posture, visible fat loss or muscle gain.
 Be encouraging, specific, and honest. Keep it to 2-3 sentences.
 Start with "This week, ..."`,
                 },
-                { type: "image_url", image_url: { url: prevUrl, detail: "high" } },
-                { type: "image_url", image_url: { url: currentUrl, detail: "high" } },
+                { type: "image_url", image_url: { url: prevUrl } },
+                { type: "image_url", image_url: { url: currentUrl } },
               ],
             },
           ],
@@ -49,7 +49,7 @@ Start with "This week, ..."`,
     }
 
     const analysisResponse = await client.chat.completions.create({
-      model: "gpt-4o",
+      model: "llama-3.2-11b-vision-preview",
       messages: [
         {
           role: "user",
@@ -60,7 +60,7 @@ Start with "This week, ..."`,
 Provide a brief, encouraging assessment of the person's current physique and any recommendations.
 Keep it to 2-3 sentences. Be positive and motivating.`,
             },
-            { type: "image_url", image_url: { url: currentUrl, detail: "high" } },
+            { type: "image_url", image_url: { url: currentUrl } },
           ],
         },
       ],

@@ -16,15 +16,15 @@ export const analyzeFoodPhoto = action({
     ),
   },
   handler: async (ctx, { storageId, date, mealType }) => {
-    const { default: OpenAI } = await import("openai");
-    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const { default: Groq } = await import("groq-sdk");
+    const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
     // Get file URL from Convex storage
     const url = await ctx.storage.getUrl(storageId);
     if (!url) throw new Error("Could not get photo URL");
 
     const response = await client.chat.completions.create({
-      model: "gpt-4o",
+      model: "llama-3.2-11b-vision-preview",
       messages: [
         {
           role: "user",
@@ -50,7 +50,7 @@ Be accurate with macronutrients. If multiple items are visible, list each separa
             },
             {
               type: "image_url",
-              image_url: { url, detail: "high" },
+              image_url: { url },
             },
           ],
         },
