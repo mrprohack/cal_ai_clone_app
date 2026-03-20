@@ -5,6 +5,46 @@
 # any file.
 # ─────────────────────────────────────────────────────────────────────────────
 
+---
+
+## 0. ⚠️ AGENT.md SELF-MAINTENANCE RULE (MANDATORY)
+
+> **Every time you add, delete, rename, or significantly modify any file in this project you MUST update BOTH of the following files before reporting the task as complete:**
+>
+> 1. `.agents/AGENT.md` — full agent rules (this file)
+> 2. `AGENTS.md` — top-level quick reference
+
+### What to update
+
+| Change type | What to update in AGENT.md |
+| ------------- | ---------------------------- |
+| New page added (`app/*/page.tsx`) | § 4 file tree + § 17 priority list; add row to § 4 tree |
+| New CSS module added | § 4 file tree (add next to its page) |
+| New Convex function/file | § 4 file tree + § 6 backend functions table |
+| New API route | § 4 file tree + § 7 API routes section |
+| New component | § 4 file tree (`components/` block) |
+| New lib/utility file | § 4 file tree (`lib/` block) |
+| DB schema change | § 5 database schema tables |
+| New env variable | § 15 environment variables table |
+| New nav item | § 11 Navbar routes table |
+| File deleted / renamed | § 4 file tree (remove/rename the entry) |
+
+### Update format
+
+For each new file added to the tree, use this format:
+
+```text
+│   ├── filename.ext        # Short description — route or purpose
+```
+
+
+### Also update `AGENTS.md`
+
+If you add a new page route, update the **Page Map** table in `AGENTS.md`.  
+If you add a new Convex module or function, update the **Key Convex Modules** table.
+
+---
+
 ## 1. PROJECT IDENTITY
 
 **Name:** Cal AI  
@@ -412,3 +452,77 @@ When given a task, the agent should:
 8. **Never hardcode data** — always connect to Convex queries/mutations.
 9. **Test in browser** after implementation by screenshotting key flows.
 10. **Maintain the premium UX standard** — dark theme, smooth animations, glassmorphism cards.
+11. **⚠️ UPDATE AGENT.md + AGENTS.md** — after ANY file addition, deletion, or rename, update § 4 file tree, relevant tables in this file, AND the Page Map / Convex Modules tables in `AGENTS.md`. This is non-negotiable. See § 0 for the full rule.
+
+---
+
+## 18. AGENT.md CURRENT FILE TREE CHECKLIST
+
+Use this as a quick audit checklist. Every file in `web/` (excluding `_generated/` and `node_modules/`) should appear in § 4.
+
+```
+web/
+├── app/
+│   ├── layout.tsx                  # Root layout — fonts, Convex provider, Navbar
+│   ├── globals.css                 # Design tokens (CSS variables), resets, animations
+│   ├── page.tsx                    # Landing / home page  (route: /)
+│   ├── page.module.css
+│   │
+│   ├── ConvexClientProvider.tsx    # Wraps the app in <ConvexProvider>
+│   │
+│   ├── login/
+│   │   ├── page.tsx                # Login form (route: /login)
+│   │   └── auth.module.css
+│   │
+│   ├── signup/
+│   │   └── page.tsx                # Sign-up form (route: /signup)
+│   │
+│   ├── dashboard/
+│   │   ├── page.tsx                # Today overview (route: /dashboard)
+│   │   └── Dashboard.module.css
+│   │
+│   ├── log/
+│   │   ├── page.tsx                # Log your meal — AI scan + meal list (route: /log)
+│   │   └── Log.module.css
+│   │
+│   ├── progress/
+│   │   ├── page.tsx                # Progress charts (route: /progress)
+│   │   └── Progress.module.css
+│   │
+│   ├── plans/
+│   │   ├── page.tsx                # Pricing — Free / Pro / Ultra (route: /plans)
+│   │   └── Plans.module.css
+│   │
+│   ├── profile/
+│   │   ├── page.tsx                # User profile + goals + premium tab (route: /profile)
+│   │   └── Profile.module.css
+│   │
+│   ├── chat/
+│   │   ├── page.tsx                # FitBot AI chat (route: /chat)
+│   │   └── Chat.module.css
+│   │
+│   └── api/
+│       ├── analyze-meal/
+│       │   └── route.ts            # POST /api/analyze-meal — Groq vision analysis
+│       └── chat/
+│           └── route.ts            # POST /api/chat — FitBot streaming chat
+│
+├── components/
+│   ├── Navbar.tsx                  # Top navigation (shared across all pages)
+│   └── Navbar.module.css
+│
+├── convex/                         # ← WEB APP'S OWN CONVEX BACKEND
+│   ├── schema.ts                   # Database schema (source of truth)
+│   ├── auth.ts                     # signUp / signIn / signOut / getSessionUser
+│   ├── users.ts                    # getMe / getById / updateProfile / updatePlan / getUserPlan
+│   ├── meals.ts                    # log / byDate / remove / getTodayMeals
+│   ├── daily.ts                    # Daily summary helpers
+│   ├── progress.ts                 # Progress snapshots
+│   ├── seed.ts                     # Dev seed data
+│   └── _generated/                 # AUTO-GENERATED — never edit manually
+│
+└── lib/
+    └── auth-context.tsx            # useAuth() hook — session token in localStorage
+```
+
+> **Last audited:** 2026-03-20 · All files accounted for. Update this date whenever you audit the tree.

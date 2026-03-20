@@ -1,6 +1,21 @@
 # Cal AI — Agent Quick Reference
 > Full rules: `.agents/AGENT.md` — read that before any task.
 
+---
+
+## ⚠️ MANDATORY: Update AGENT.md on Every File Change
+
+**Whenever you add, delete, rename, or significantly modify any file you MUST, before marking the task complete:**
+
+1. Update the **file tree** in `.agents/AGENT.md` § 4 (add/remove the entry with a description comment).
+2. Update the **relevant table** in `.agents/AGENT.md` (§ 5 schema, § 6 Convex functions, § 7 API routes, § 11 Navbar, § 15 env vars).
+3. Update the **Page Map** or **Key Convex Modules** table in this file (`AGENTS.md`) if the change affects routes or Convex modules.
+4. Update the **Last audited** date in `.agents/AGENT.md` § 18.
+
+> See `.agents/AGENT.md` § 0 for the full lookup table of what to update per change type.
+
+---
+
 ## TL;DR
 - **Focus:** `web/` directory only (Next.js 14 app)
 - **DB/Backend:** `web/convex/` — Convex real-time database
