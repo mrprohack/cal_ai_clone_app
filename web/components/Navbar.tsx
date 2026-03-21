@@ -16,7 +16,6 @@ const NAV_ITEMS = [
   { href: "/profile",    label: "Profile",    icon: "person" },
 ];
 
-
 export function Navbar() {
   const pathname  = usePathname();
   const router = useRouter();
@@ -24,7 +23,6 @@ export function Navbar() {
   const { user, loading } = useAuth();
 
   useEffect(() => {
-    // Global onboarding guard for protected routes
     if (!loading && user && !user.onboarded) {
       router.replace("/onboarding");
     }
@@ -36,43 +34,76 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    // Scroll the active mobile nav item into view if it's off-screen
+    const activeEl = document.querySelector(`.${styles.mobileActive}`);
+    if (activeEl) {
+      activeEl.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    }
+  }, [pathname]);
+
   return (
-    <nav className={`${styles.nav} ${scrolled ? styles.navScrolled : ""}`}>
-      {/* Logo */}
-      <Link href="/" className={styles.logo}>
-        <div className={styles.logoMark}>
-          <span className="material-symbols-outlined">fitness_center</span>
+    <>
+      <nav className={`${styles.nav} ${scrolled ? styles.navScrolled : ""}`}>
+        {/* Logo */}
+        <Link href="/" className={styles.logo}>
+          <div className={styles.logoMark}>
+            <span className="material-symbols-outlined">fitness_center</span>
+          </div>
+          <span className={styles.logoText}>
+            Cal<span className={styles.logoAccent}>AI</span>
+          </span>
+        </Link>
+
+        {/* Desktop Nav links */}
+        <div className={styles.desktopLinks}>
+          {NAV_ITEMS.map(({ href, label, icon }) => {
+            const isActive = pathname?.startsWith(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`${styles.link} ${isActive ? styles.active : ""}`}
+              >
+                <span className={`material-symbols-outlined ${styles.linkIcon}`}>
+                  {icon}
+                </span>
+                <span className={styles.linkLabel}>{label}</span>
+                {isActive && <span className={styles.activePip} />}
+              </Link>
+            );
+          })}
         </div>
-        <span className={styles.logoText}>
-          Cal<span className={styles.logoAccent}>AI</span>
-        </span>
-      </Link>
 
-      {/* Nav links */}
-      <div className={styles.links}>
-        {NAV_ITEMS.map(({ href, label, icon }) => {
-          const isActive = pathname?.startsWith(href);
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={`${styles.link} ${isActive ? styles.active : ""}`}
-            >
-              <span className={`material-symbols-outlined ${styles.linkIcon}`}>
-                {icon}
-              </span>
-              <span className={styles.linkLabel}>{label}</span>
-              {isActive && <span className={styles.activePip} />}
-            </Link>
-          );
-        })}
+        {/* Desktop Right CTA */}
+        <Link href="/log" className={styles.logCta}>
+          <span className="material-symbols-outlined">add_circle</span>
+          Log Meal
+        </Link>
+      </nav>
+
+      {/* Mobile Bottom Navigation */}
+      <div className={styles.mobileBottomNav}>
+        <div className={styles.mobileLinksItems}>
+          {NAV_ITEMS.map(({ href, label, icon }) => {
+            const isActive = pathname?.startsWith(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`${styles.mobileLink} ${isActive ? styles.mobileActive : ""}`}
+              >
+                <div className={styles.mobileIconWrapper}>
+                  <span className={`material-symbols-outlined ${styles.mobileIcon}`}>
+                    {icon}
+                  </span>
+                </div>
+                <span className={styles.mobileLabel}>{label}</span>
+              </Link>
+            );
+          })}
+        </div>
       </div>
-
-      {/* Right CTA */}
-      <Link href="/log" className={styles.logCta}>
-        <span className="material-symbols-outlined">add_circle</span>
-        Log Meal
-      </Link>
-    </nav>
+    </>
   );
 }

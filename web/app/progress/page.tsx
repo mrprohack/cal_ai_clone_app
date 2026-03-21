@@ -8,11 +8,11 @@ import { Navbar } from "@/components/Navbar";
 import styles from "./Progress.module.css";
 
 /* ── Types ── */
-type Period = "7d" | "30d" | "90d";
+type Period = "today" | "7d" | "30d" | "90d";
 
 /* ── Period helpers ── */
 function getPeriodDays(p: Period): number {
-  return p === "7d" ? 7 : p === "30d" ? 30 : 90;
+  return p === "today" ? 1 : p === "7d" ? 7 : p === "30d" ? 30 : 90;
 }
 
 function getFromDate(days: number): string {
@@ -27,6 +27,9 @@ function getToday(): string {
 
 /* ── Day label helpers ── */
 function buildDayLabels(trend: { date: string; calories: number }[], period: Period): string[] {
+  if (period === "today") {
+    return trend.map(() => "Today");
+  }
   if (period === "7d") {
     const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     return trend.map((t) => days[new Date(t.date).getDay()]);
@@ -177,12 +180,13 @@ export default function ProgressPage() {
               Share
             </button>
             <div className={styles.periodTabs} id="progress-period">
-              {(["7d", "30d", "90d"] as Period[]).map((p) => (
+              {(["today", "7d", "30d", "90d"] as Period[]).map((p) => (
                 <button
                   key={p}
                   className={`${styles.periodTab} ${period === p ? styles.periodTabActive : ""}`}
                   onClick={() => setPeriod(p)}
                   id={`progress-period-${p}`}
+                  style={{ textTransform: p === "today" ? "capitalize" : "none" }}
                 >
                   {p}
                 </button>
@@ -218,7 +222,7 @@ export default function ProgressPage() {
               <div className={styles.cardHeader}>
                 <span className="material-symbols-outlined">bar_chart</span>
                 <strong>Calorie Trend</strong>
-                <span className={styles.cardChip}>Last {days} Days</span>
+                <span className={styles.cardChip}>{days === 1 ? "Today" : `Last ${days} Days`}</span>
               </div>
 
               <div className={styles.chartArea} id="progress-calorie-chart">

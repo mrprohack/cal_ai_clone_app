@@ -450,6 +450,7 @@ The `@/` alias resolves to `web/` root. Always use `@/convex/_generated/api` not
 ## 11. NAVBAR
 
 **File:** `web/components/Navbar.tsx`  
+**Features:** Desktop top navigation and mobile bottom horizontally-scrolling navigation bar.
 **Routes (in order):**
 
 | Label | Route | Icon |
@@ -463,7 +464,7 @@ The `@/` alias resolves to `web/` root. Always use `@/convex/_generated/api` not
 | FitBot | `/chat` | `smart_toy` |
 | Profile | `/profile` | `person` |
 
-Right CTA: "Log Meal" → `/log`
+Right CTA: "Log Meal" → `/log` (Displays properly on both desktop and mobile menu)
 
 ---
 
@@ -634,5 +635,4 @@ web/
 └── lib/
     └── auth-context.tsx            # useAuth() hook — session token in localStorage
 ```
-
-> **Last audited:** 2026-03-21 · Implemented comprehensive UX improvements across Dashboard, Log, Progress, Profile, and Chat pages.
+> **Last audited:** 2026-03-21 · Implemented comprehensive UX improvements across Dashboard, Log, Progress, Profile, and Chat pages; updated Navbar to be mobile-responsive.

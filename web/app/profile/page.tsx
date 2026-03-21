@@ -100,8 +100,23 @@ function GoalRow({
   label: string; unit: string; val: number; setVal: (v: number) => void;
   min: number; max: number; step: number; icon: string; id: string; loading?: boolean;
 }) {
+  const [localVal, setLocalVal] = useState(String(val));
+
+  useEffect(() => {
+    setLocalVal(String(val));
+  }, [val]);
+
   function nudge(delta: number) {
-    setVal(Math.min(max, Math.max(min, parseFloat((val + delta).toFixed(1)))));
+    const newVal = Math.min(max, Math.max(min, parseFloat((val + delta).toFixed(1))));
+    setVal(newVal);
+  }
+
+  function handleBlur() {
+    let num = parseFloat(localVal);
+    if (isNaN(num)) num = min;
+    const clamped = Math.min(max, Math.max(min, num));
+    setVal(clamped);
+    setLocalVal(String(clamped));
   }
 
   if (loading) {
@@ -139,7 +154,17 @@ function GoalRow({
           disabled={val <= min}
           aria-label={`Decrease ${label}`}
         >−</button>
-        <span className={styles.goalVal}>{val}{unit}</span>
+        <div className={styles.goalInputWrapper}>
+          <input
+            type="number"
+            className={styles.goalInput}
+            value={localVal}
+            onChange={(e) => setLocalVal(e.target.value)}
+            onBlur={handleBlur}
+            onKeyDown={(e) => e.key === "Enter" && handleBlur()}
+          />
+          <span className={styles.goalInputUnit}>{unit}</span>
+        </div>
         <button
           className={styles.numBtn}
           onClick={() => nudge(step)}
@@ -421,7 +446,7 @@ export default function ProfilePage() {
                 id={`profile-tab-${t.id}`}
               >
                 <span className="material-symbols-outlined">{t.icon}</span>
-                {t.label}
+                <span className={styles.tabLabel}>{t.label}</span>
               </button>
             ))}
           </nav>
