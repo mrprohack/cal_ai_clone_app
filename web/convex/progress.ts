@@ -15,9 +15,37 @@ import { v } from "convex/values";
  * ─────────
  * upsert  — upsert a daily progress snapshot (called from log page)
  * logWeight — quick weight-only entry
+ * logWater  — increments daily water intake
  */
 
 // ─── Mutations ────────────────────────────────────────────────────────────────
+
+/** Log water intake */
+export const logWater = mutation({
+  args: {
+    userId: v.id("users"),
+    date: v.string(),
+    waterMl: v.number(),
+  },
+  handler: async (ctx, { userId, date, waterMl }) => {
+    const existing = await ctx.db
+      .query("progress")
+      .withIndex("by_user_date", (q) =>
+        (q as any).eq("userId", userId).eq("date", date)
+      )
+      .unique();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, { waterMl: (existing.waterMl ?? 0) + waterMl });
+      return existing._id;
+    }
+    return await ctx.db.insert("progress", {
+      userId, date, waterMl,
+      caloriesConsumed: 0, proteinConsumed: 0, carbsConsumed: 0, fatConsumed: 0,
+      recordedAt: Date.now(),
+    });
+  },
+});
 
 /** Upsert a daily progress snapshot */
 export const upsert = mutation({
@@ -82,6 +110,17 @@ export const logWeight = mutation({
 });
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
+
+/** Get specific daily progress snapshot (e.g. for water lookup) */
+export const getDailyProgress = query({
+  args: { userId: v.id("users"), date: v.string() },
+  handler: async (ctx, { userId, date }) => {
+    return await ctx.db
+      .query("progress")
+      .withIndex("by_user_date", (q) => (q as any).eq("userId", userId).eq("date", date))
+      .unique();
+  },
+});
 
 /** Get progress rows for a user over date range */
 export const range = query({

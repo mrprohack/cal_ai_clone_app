@@ -304,10 +304,14 @@ Indexes: `by_user`, `by_user_date`
 | `meals.byDate` | query | Get meals for userId + date |
 | `meals.remove` | mutation | Delete a meal by ID |
 | `meals.getTodayMeals` | query | Get all meals for a date (all users) |
+| `meals.getRecent` | query | Get a user's recently logged unique meals |
 
 ### Progress (`convex/progress.ts`)
 | Function | Type | Description |
 |----------|------|-------------|
+| `progress.logWater` | mutation | Add water intake for a given date |
+| `progress.getDailyProgress` | query | Get progress snapshot for a specific date |
+| `progress.getStats` | query | Get aggregated stats and current streak |
 | See progress.ts | — | Progress snapshot CRUD |
 
 ### Foods (`convex/foods.ts`)
@@ -619,7 +623,7 @@ web/
 │   ├── schema.ts                   # Database schema (source of truth)
 │   ├── auth.ts                     # signUp / signIn / signOut / getSessionUser
 │   ├── users.ts                    # getMe / getById / updateProfile / updatePlan / getUserPlan
-│   ├── meals.ts                    # log / byDate / remove / getTodayMeals
+│   ├── meals.ts                    # log / byDate / remove / getTodayMeals / getRecent
 │   ├── foods.ts                    # Quick Add foods listing and search
 │   ├── daily.ts                    # Daily summary helpers
 │   ├── progress.ts                 # Progress snapshots
@@ -631,4 +635,4 @@ web/
     └── auth-context.tsx            # useAuth() hook — session token in localStorage
 ```
 
-> **Last audited:** 2026-03-21 · Added seedFoods.ts for comprehensive Quick Add Indian food database seeding.
+> **Last audited:** 2026-03-21 · Implemented comprehensive UX improvements across Dashboard, Log, Progress, Profile, and Chat pages.

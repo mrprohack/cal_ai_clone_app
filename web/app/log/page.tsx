@@ -219,7 +219,7 @@ function QuantityPicker({ food, onConfirm, onCancel, saving }: {
   onCancel: () => void;
   saving: boolean;
 }) {
-  const [mode, setMode]         = useState<QtyMode>("servings");
+  const [mode, setMode]         = useState<QtyMode>("grams");
   const [servings, setServings] = useState(1);
   const [grams, setGrams]       = useState("100");
 
@@ -371,6 +371,7 @@ export default function LogPage() {
   const [scanError, setScanError]   = useState<string | null>(null);
   const [query, setQuery]           = useState("");
   const [foodCat, setFoodCat]       = useState<FoodCategory>("All");
+  const [addMode, setAddMode]       = useState<"search" | "recent">("search");
   const [pendingFood, setPendingFood] = useState<DBFood | null>(null);
   const [showManual, setShowManual] = useState(false);
   const [form, setForm]             = useState<ManualForm>(emptyForm);
@@ -419,6 +420,8 @@ export default function LogPage() {
 
   const displayedFoodsResult = useQuery(api.foods.search, { searchQuery: query, category: foodCat });
   const displayedFoods: DBFood[] = displayedFoodsResult ?? [];
+
+  const recentFoods = useQuery(api.meals.getRecent, userId ? { userId: userId as any } : "skip") ?? [];
 
   const activeMealMeta = MEAL_TYPES.find((m) => m.id === mealType)!;
 
@@ -939,10 +942,15 @@ export default function LogPage() {
                   className={styles.searchInput}
                   placeholder="Search foods…"
                   value={query}
-                  onChange={(e) => setQuery(e.target.value)}
+                  onChange={(e) => { setQuery(e.target.value); setAddMode("search"); }}
                   id="log-search-input"
                   aria-label="Search foods"
                 />
+                {!query && (
+                  <button className={styles.searchClear} onClick={() => alert("Barcode scanning relies on native camera APIs. Try snapping a photo!")} aria-label="Scan barcode" title="Scan Barcode">
+                    <span className="material-symbols-outlined">barcode_scanner</span>
+                  </button>
+                )}
                 {query && (
                   <button className={styles.searchClear} onClick={() => setQuery("")} aria-label="Clear search">
                     <span className="material-symbols-outlined">close</span>
@@ -950,50 +958,98 @@ export default function LogPage() {
                 )}
               </div>
 
-              {/* Category filter tabs */}
-              <div className={styles.catTabs} role="tablist" aria-label="Food categories">
-                {FOOD_CATEGORIES.map((cat) => (
-                  <button
-                    key={cat}
-                    role="tab"
-                    aria-selected={foodCat === cat}
-                    className={`${styles.catTab} ${foodCat === cat ? styles.catTabActive : ""}`}
-                    onClick={() => setFoodCat(cat)}
-                  >
-                    {cat}
-                  </button>
-                ))}
+              {/* Add Modes (Tabs) */}
+              <div className={styles.catTabs} style={{ display: "flex", gap: "8px", borderBottom: "1px solid var(--border)", paddingBottom: "12px", marginBottom: "4px" }}>
+                <button
+                  className={`${styles.catTab} ${addMode === "search" ? styles.catTabActive : ""}`}
+                  onClick={() => setAddMode("search")}
+                >
+                  Dataset
+                </button>
+                <button
+                  className={`${styles.catTab} ${addMode === "recent" ? styles.catTabActive : ""}`}
+                  onClick={() => setAddMode("recent")}
+                >
+                  Recent
+                </button>
               </div>
+
+              {/* Category filter tabs */}
+              {addMode === "search" && (
+                <div className={styles.catTabs} role="tablist" aria-label="Food categories">
+                  {FOOD_CATEGORIES.map((cat) => (
+                    <button
+                      key={cat}
+                      role="tab"
+                      aria-selected={foodCat === cat}
+                      className={`${styles.catTab} ${foodCat === cat ? styles.catTabActive : ""}`}
+                      onClick={() => setFoodCat(cat)}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              )}
 
               {/* Food cards */}
               <div className={styles.foodGrid} role="list">
-                {displayedFoods.length === 0 ? (
-                  <div className={styles.noResults}>
-                    <span className="material-symbols-outlined">search_off</span>
-                    No results for "{query}"
-                  </div>
-                ) : (
-                  displayedFoods.map((food) => (
-                    <div key={food.name}>
-                      <FoodCard
-                        food={food}
-                        onSelect={() => setPendingFood(
-                          pendingFood?.name === food.name ? null : food
-                        )}
-                        isSelected={pendingFood?.name === food.name}
-                        adding={saving}
-                      />
-                      {/* Inline quantity picker — slides open below the selected card */}
-                      {pendingFood?.name === food.name && (
-                        <QuantityPicker
-                          food={food}
-                          onConfirm={handleConfirmAdd}
-                          onCancel={() => setPendingFood(null)}
-                          saving={saving}
-                        />
-                      )}
+                {addMode === "recent" ? (
+                  recentFoods.length === 0 ? (
+                    <div className={styles.noResults}>
+                      <span className="material-symbols-outlined">history</span>
+                      No recent meals
                     </div>
-                  ))
+                  ) : (
+                    recentFoods.map((food: any) => (
+                      <div key={`recent-${food.name}`}>
+                        <FoodCard
+                          food={food}
+                          onSelect={() => setPendingFood(
+                            pendingFood?.name === food.name ? null : food
+                          )}
+                          isSelected={pendingFood?.name === food.name}
+                          adding={saving}
+                        />
+                        {pendingFood?.name === food.name && (
+                          <QuantityPicker
+                            food={food}
+                            onConfirm={handleConfirmAdd}
+                            onCancel={() => setPendingFood(null)}
+                            saving={saving}
+                          />
+                        )}
+                      </div>
+                    ))
+                  )
+                ) : (
+                  displayedFoods.length === 0 ? (
+                    <div className={styles.noResults}>
+                      <span className="material-symbols-outlined">search_off</span>
+                      No results for "{query}"
+                    </div>
+                  ) : (
+                    displayedFoods.map((food) => (
+                      <div key={food.name}>
+                        <FoodCard
+                          food={food}
+                          onSelect={() => setPendingFood(
+                            pendingFood?.name === food.name ? null : food
+                          )}
+                          isSelected={pendingFood?.name === food.name}
+                          adding={saving}
+                        />
+                        {/* Inline quantity picker — slides open below the selected card */}
+                        {pendingFood?.name === food.name && (
+                          <QuantityPicker
+                            food={food}
+                            onConfirm={handleConfirmAdd}
+                            onCancel={() => setPendingFood(null)}
+                            saving={saving}
+                          />
+                        )}
+                      </div>
+                    ))
+                  )
                 )}
               </div>
             </div>

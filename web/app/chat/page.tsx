@@ -275,6 +275,20 @@ export default function ChatPage() {
 
           {/* Input */}
           <div className={styles.inputWrap}>
+            {messages.length <= 2 && (
+              <div className={styles.chipRow}>
+                {SUGGESTIONS.map((s) => (
+                  <button
+                    key={s}
+                    className={styles.chipBtn}
+                    onClick={() => send(s)}
+                    disabled={streaming}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className={styles.inputBox}>
               <textarea
                 className={styles.textarea}

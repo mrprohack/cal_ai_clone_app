@@ -234,6 +234,40 @@
   flex-shrink: 0;
 }
 
+.chipRow {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 0px;
+  scrollbar-width: none;
+}
+.chipRow::-webkit-scrollbar { display: none; }
+
+.chipBtn {
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  padding: 6px 14px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.chipBtn:hover {
+  background: rgba(59,150,245,0.1);
+  color: var(--primary);
+  border-color: rgba(59,150,245,0.3);
+}
+
+.chipBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .inputBox {
   display: flex;
   align-items: flex-end;

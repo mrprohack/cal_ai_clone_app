@@ -57,6 +57,7 @@ function Skeleton({ w = "100%", h = 24 }: { w?: string; h?: number }) {
 export default function ProgressPage() {
   const [period, setPeriod] = useState<Period>("7d");
   const [weightInput, setWeightInput] = useState("");
+  const [showWeightModal, setShowWeightModal] = useState(false);
   const { user } = useAuth();
 
   const days = getPeriodDays(period);
@@ -349,6 +350,13 @@ export default function ProgressPage() {
                       <span style={{ fontWeight: 800, color: "var(--primary)" }}>{w.weightKg} kg</span>
                     </div>
                   ))}
+                  
+                  {user?.weightKg && (
+                    <div className={styles.goalLine} style={{ marginTop: 8 }}>
+                      <span>Target: {user.weightKg} kg</span>
+                    </div>
+                  )}
+
                   {weightHistory.length > 1 && (() => {
                     const first = weightHistory[0].weightKg;
                     const last = weightHistory[weightHistory.length - 1].weightKg;
@@ -484,6 +492,52 @@ export default function ProgressPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Quick Weight FAB ── */}
+      <button className={styles.fab} onClick={() => setShowWeightModal(true)} aria-label="Quick log weight">
+        <span className="material-symbols-outlined">add</span>
+      </button>
+
+      {/* ── Weight Modal ── */}
+      {showWeightModal && (
+        <div className={styles.backdrop} onClick={() => setShowWeightModal(false)}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeaderRow}>
+              <div>
+                <h2 className={styles.modalTitle}>Log Weight</h2>
+                <p className={styles.modalSub}>Update today's measurement</p>
+              </div>
+              <button className={styles.modalClose} onClick={() => setShowWeightModal(false)}>
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            
+            <div className={styles.weightInputRow}>
+              <input
+                type="number"
+                step="0.1"
+                placeholder="Weight in kg"
+                value={weightInput}
+                onChange={(e) => setWeightInput(e.target.value)}
+                className={styles.weightInput}
+                autoFocus
+              />
+              <button
+                onClick={async () => {
+                  if (!weightInput || isNaN(Number(weightInput)) || !userId) return;
+                  await logWeight({ userId, date: today, weightKg: Number(weightInput) });
+                  setWeightInput("");
+                  setShowWeightModal(false);
+                }}
+                className={styles.weightBtn}
+                disabled={!weightInput || isNaN(Number(weightInput))}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

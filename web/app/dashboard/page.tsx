@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Navbar } from "@/components/Navbar";
 import { useAuth } from "@/lib/auth-context";
@@ -161,6 +161,21 @@ export default function DashboardPage() {
     api.progress.getCalorieTrend,
     user?._id ? { userId: user._id as any, fromDate: getFromDate(7), toDate: today } : "skip"
   );
+  const stats = useQuery(
+    api.progress.getStats,
+    user?._id ? { userId: user._id as any, fromDate: getFromDate(30), toDate: today } : "skip"
+  );
+  const streak = stats?.streak ?? 0;
+
+  const logWater = useMutation(api.progress.logWater);
+  const dailyProgress = useQuery(api.progress.getDailyProgress, user?._id ? { userId: user._id as any, date: today } : "skip");
+  const waterMl = dailyProgress?.waterMl ?? 0;
+  const waterTarget = 3000;
+
+  async function handleAddWater() {
+    if (!user?._id) return;
+    await logWater({ userId: user._id as any, date: today, waterMl: 250 });
+  }
 
   const calorieTarget = user?.calorieGoal ?? 2000;
   const proteinTarget = user?.proteinGoal ?? 150;
@@ -229,6 +244,7 @@ export default function DashboardPage() {
             <StatChip icon="local_fire_department" label="Consumed" value={`${Math.round(consumed)} kcal`} color="var(--primary)" />
             <StatChip icon="fitness_center"        label="Burned"   value={`${burned} kcal`}              color="var(--accent-green)" />
             <StatChip icon="balance"               label="Net"      value={`${Math.round(net)} kcal`}     color={net < calorieTarget ? "var(--accent-green)" : "var(--fat)"} />
+            <StatChip icon="whatshot"              label="Streak"   value={`${streak} Days`}              color="var(--accent-orange)" />
           </div>
         </div>
 
@@ -372,6 +388,19 @@ export default function DashboardPage() {
                 Weekly Calorie Trend
               </div>
               <WeekChart data={weekData} />
+            </div>
+
+            {/* Hydration tracking */}
+            <div className={`${styles.glassCard} ${styles.waterCard}`}>
+              <div className={styles.waterTitle}><span className="material-symbols-outlined" style={{color: "var(--primary)"}}>water_drop</span> Hydration</div>
+              <div className={styles.waterDropWrap}>
+                <span className={`material-symbols-outlined ${styles.waterDrop}`}>water_drop</span>
+              </div>
+              <div className={styles.waterValue}>{(waterMl / 1000).toFixed(1)}L</div>
+              <div className={styles.waterTarget}>of {(waterTarget / 1000).toFixed(1)}L Daily Target</div>
+              <button className={styles.waterCta} onClick={handleAddWater}>
+                <span className="material-symbols-outlined">add</span> 250ml Glass
+              </button>
             </div>
           </div>
         </div>

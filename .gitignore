@@ -9,3 +9,8 @@ dist/
 
 # ECC source (installed, not committed)
 everything-claude-code/
+
+# Dataset generation
+fetch_10k.py
+foods_10k.jsonl
+*.csv

@@ -50,8 +50,8 @@
 |------|---------|
 | `convex/auth.ts` | signUp, signIn, signOut, getSessionUser |
 | `convex/users.ts` | getById, updateProfile, updatePlan, getUserPlan |
-| `convex/meals.ts` | log, byDate, remove, getTodayMeals |
-| `convex/progress.ts` | progress CRUD |
+| `convex/meals.ts` | log, byDate, remove, getTodayMeals, getRecent |
+| `convex/progress.ts` | progress CRUD, logWater, getDailyProgress, getStats |
 | `convex/foods.ts` | list, search |
 | `convex/seedFoods.ts` | run, clearAndSeed |
 | `convex/bodyPhotos.ts` | savePhoto, listPhotos, getWeeklyPhotos, removePhoto |

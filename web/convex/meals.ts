@@ -68,3 +68,34 @@ export const range = query({
       .collect();
   },
 });
+
+/** Get a user's recently logged unique meals */
+export const getRecent = query({
+  args: { userId: v.id("users"), limit: v.optional(v.number()) },
+  handler: async (ctx, { userId, limit = 20 }) => {
+    const pastMeals = await ctx.db
+      .query("meals")
+      .withIndex("by_user_date", (q) => q.eq("userId", userId))
+      .order("desc")
+      .take(100);
+
+    const seen = new Set<string>();
+    const recentFoods: any[] = [];
+    
+    for (const m of pastMeals) {
+      if (!seen.has(m.name)) {
+        seen.add(m.name);
+        recentFoods.push({
+          name: m.name,
+          cals: m.calories,
+          protein: m.proteinG,
+          carbs: m.carbsG,
+          fat: m.fatG,
+          emoji: "🍽️",
+        });
+        if (recentFoods.length >= limit) break;
+      }
+    }
+    return recentFoods;
+  },
+});
