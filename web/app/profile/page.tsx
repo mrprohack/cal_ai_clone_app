@@ -310,6 +310,15 @@ export default function ProfilePage() {
     }
   }
 
+  async function handleLogout() {
+    try {
+      await signOut();
+      window.location.href = "/";
+    } catch {
+      showToast("Failed to log out.", "error");
+    }
+  }
+
   const initials = displayName.trim()
     .split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 
@@ -483,6 +492,10 @@ export default function ProfilePage() {
                   <button className={styles.manageBtn} disabled={exporting} onClick={handleExport} id="profile-export-data" style={{ background: "var(--surface-elevated)", borderColor: "var(--border)", color: "var(--text)" }}>
                     {exporting ? <span className={styles.spinner} /> : <span className="material-symbols-outlined">download</span>}
                     {exporting ? "Exporting..." : "Export Data (JSON)"}
+                  </button>
+                  <button className={styles.manageBtn} onClick={handleLogout} id="profile-logout-btn" style={{ background: "var(--surface-elevated)", borderColor: "var(--border)", color: "var(--text)" }}>
+                    <span className="material-symbols-outlined">logout</span>
+                    Log Out
                   </button>
                   <button className={styles.dangerBtn} disabled={deleting} onClick={handleDeleteAccount} id="profile-delete-account">
                     {deleting ? <span className={styles.spinner} style={{ borderColor: "rgba(239,68,68,0.3)", borderTopColor: "#ef4444" }} /> : <span className="material-symbols-outlined">delete_forever</span>}

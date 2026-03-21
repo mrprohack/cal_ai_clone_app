@@ -367,6 +367,7 @@ export default function LogPage() {
   const [scanState, setScanState]   = useState<ScanState>("idle");
   const [preview, setPreview]       = useState<string | null>(null);
   const [aiResult, setAiResult]     = useState<AiMealResult | null>(null);
+  const [scanQty, setScanQty]       = useState<number>(1);
   const [scanError, setScanError]   = useState<string | null>(null);
   const [query, setQuery]           = useState("");
   const [foodCat, setFoodCat]       = useState<FoodCategory>("All");
@@ -532,6 +533,7 @@ export default function LogPage() {
 
     setPreview(URL.createObjectURL(file));
     setAiResult(null);
+    setScanQty(1);
     setScanError(null);
     setScanState("uploading");
 
@@ -571,21 +573,25 @@ export default function LogPage() {
   async function handleLogScan() {
     if (!userId || !aiResult) return;
     setSaving(true);
+    const cals = Math.round(aiResult.calories * scanQty);
+    const pro  = Math.round(aiResult.proteinG * scanQty);
+    const carb = Math.round(aiResult.carbsG * scanQty);
+    const fat  = Math.round(aiResult.fatG * scanQty);
     try {
       await logMeal({
         userId,
         name:        aiResult.name,
         mealType,
-        calories:    aiResult.calories,
-        proteinG:    aiResult.proteinG,
-        carbsG:      aiResult.carbsG,
-        fatG:        aiResult.fatG,
-        servingSize: aiResult.servingSize,
+        calories:    cals,
+        proteinG:    pro,
+        carbsG:      carb,
+        fatG:        fat,
+        servingSize: scanQty === 1 ? aiResult.servingSize : `${scanQty}x ${aiResult.servingSize}`,
         date:        today,
         loggedAt:    Date.now(),
         aiGenerated: true,
       });
-      await syncProgress(aiResult.calories, aiResult.proteinG, aiResult.carbsG, aiResult.fatG);
+      await syncProgress(cals, pro, carb, fat);
       setPreview(null);
       setAiResult(null);
       setScanState("idle");
@@ -597,6 +603,7 @@ export default function LogPage() {
   function resetScan() {
     setPreview(null);
     setAiResult(null);
+    setScanQty(1);
     setScanError(null);
     setScanState("idle");
     if (fileRef.current) fileRef.current.value = "";
@@ -811,54 +818,61 @@ export default function LogPage() {
           {/* ── RESULT CARD ── */}
           {scanState === "done" && aiResult && (
             <div className={styles.resultCard} role="region" aria-label="AI analysis result">
-              <div className={styles.resultTopRow}>
-                <div className={styles.resultBadge}>
-                  <span className="material-symbols-outlined">psychology</span>
-                  AI Identified
+              <div className={styles.resultHeader}>
+                <span className={styles.resultChip}>{activeMealMeta.label}</span>
+                <div className={styles.resultTitleRow}>
+                  <h3 className={styles.resultName}>{aiResult.name}</h3>
+                  <div className={styles.resultQtyWrap}>
+                    <button className={styles.qtyBtn} onClick={() => setScanQty(q => Math.max(0.5, q - 0.5))}>–</button>
+                    <span className={styles.qtyVal}>{scanQty}</span>
+                    <button className={styles.qtyBtn} onClick={() => setScanQty(q => q + 0.5)}>+</button>
+                  </div>
                 </div>
-                <span
-                  className={styles.resultConfBadge}
-                  style={{
-                    background: aiResult.confidence >= 85 ? "rgba(16,229,107,.12)" : "rgba(251,191,36,.12)",
-                    color:      aiResult.confidence >= 85 ? "var(--accent-green)" : "var(--accent-yellow)",
-                    borderColor: aiResult.confidence >= 85 ? "rgba(16,229,107,.25)" : "rgba(251,191,36,.25)",
-                  }}
-                >
-                  {aiResult.confidence}% confident
-                </span>
-              </div>
-
-              <div>
-                <h3 className={styles.resultName}>{aiResult.name}</h3>
-                <p className={styles.resultServing}>{aiResult.servingSize}</p>
               </div>
 
               <div className={styles.resultMacroGrid}>
                 {([
-                  { label: "Calories", val: aiResult.calories,  unit: "kcal", color: "var(--primary)"       },
-                  { label: "Protein",  val: aiResult.proteinG,  unit: "g",    color: "var(--accent-green)"  },
-                  { label: "Carbs",    val: aiResult.carbsG,    unit: "g",    color: "var(--accent-purple)" },
-                  { label: "Fat",      val: aiResult.fatG,      unit: "g",    color: "var(--fat)"           },
+                  { label: "Calories", val: Math.round(aiResult.calories * scanQty),      icon: "local_fire_department",  color: "var(--text)",   bg: "var(--surface)" },
+                  { label: "Carbs",    val: Math.round(aiResult.carbsG * scanQty) + "g",    icon: "eco",                    color: "var(--text)",   bg: "var(--surface)" },
+                  { label: "Protein",  val: Math.round(aiResult.proteinG * scanQty) + "g",  icon: "egg_alt",                color: "var(--text)",   bg: "var(--surface)" },
+                  { label: "Fats",     val: Math.round(aiResult.fatG * scanQty) + "g",      icon: "water_drop",             color: "var(--text)",   bg: "var(--surface)" },
                 ] as const).map((m) => (
-                  <div key={m.label} className={styles.resultMacroCell}>
-                    <span className={styles.resultMacroCellVal} style={{ color: m.color }}>{m.val}</span>
-                    <span className={styles.resultMacroCellUnit}>{m.unit}</span>
-                    <span className={styles.resultMacroCellLabel}>{m.label}</span>
+                  <div key={m.label} className={styles.resultMacroCell2}>
+                    <div className={styles.macroCellIcon} style={{ color: m.color, background: m.bg }}>
+                      <span className="material-symbols-outlined">{m.icon}</span>
+                    </div>
+                    <div className={styles.macroCellData}>
+                      <span className={styles.macroCellLabel}>{m.label}</span>
+                      <span className={styles.macroCellVal}>{m.val}</span>
+                    </div>
+                    <span className="material-symbols-outlined" style={{ marginLeft: "auto", fontSize: "14px", color: "var(--text-muted)" }}>edit</span>
                   </div>
                 ))}
               </div>
 
-              <div className={styles.resultActions}>
-                <button className={styles.primaryBtn} id="log-confirm-btn"
-                  onClick={handleLogScan} disabled={saving || !userId}>
-                  {saving
-                    ? <><div className={styles.spinSm} />Saving…</>
-                    : <><span className="material-symbols-outlined">add_circle</span>Log This Meal</>
-                  }
+              {/* Health Score */}
+              <div className={styles.healthScoreRow}>
+                <div className={styles.healthScoreIcon}>
+                  <span className="material-symbols-outlined">favorite</span>
+                </div>
+                <div className={styles.healthScoreDetail}>
+                  <div className={styles.healthScoreTop}>
+                    <span className={styles.healthScoreLabel}>Health score</span>
+                    <span className={styles.healthScoreVal}>{Math.round(aiResult.confidence / 10)}/10</span>
+                  </div>
+                  <div className={styles.healthScoreBar}>
+                    <div className={styles.healthScoreFill} style={{ width: `${aiResult.confidence}%` }}></div>
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.resultActions2}>
+                <button className={styles.fixBtn} onClick={resetScan}>
+                  <span className="material-symbols-outlined">auto_awesome</span> Fix Results
                 </button>
-                <button className={styles.ghostBtn} onClick={resetScan}>
-                  <span className="material-symbols-outlined">replay</span>
-                  Retake
+                <button className={styles.doneBtn} id="log-confirm-btn"
+                  onClick={handleLogScan} disabled={saving || !userId}>
+                  {saving ? "Saving..." : "Done"}
                 </button>
               </div>
             </div>

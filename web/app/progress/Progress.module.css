@@ -270,6 +270,50 @@
 .addPhotoBtn .material-symbols-outlined { font-size: 16px !important; }
 .addPhotoBtn:hover { background: rgba(59,150,245,0.25); }
 
+/* ── Weight Input ── */
+.weightInputRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.weightInput {
+  flex: 1;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.weightInput:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.weightBtn {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.weightBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.weightBtn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
 /* ── Achievements ── */
 .achieveGrid {
   display: grid;

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState } from "react"
 import styles from "../Log.module.css"
 import { MEAL_TYPES } from "../types"
 import type { MealRowProps } from "../types"

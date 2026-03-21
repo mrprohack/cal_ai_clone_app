@@ -595,55 +595,84 @@
 ───────────────────────────────────── */
 .resultCard {
   background: var(--surface);
-  border: 1px solid rgba(168,85,247,.2);
-  border-radius: var(--radius-xl);
-  padding: 22px;
-  display: flex; flex-direction: column; gap: 16px;
+  border-radius: 28px;
+  padding: 24px;
+  display: flex; flex-direction: column; gap: 24px;
+  box-shadow: var(--shadow-lg);
+  color: var(--text);
   animation: fadeInUp 0.4s var(--ease-out) both;
-  box-shadow: 0 0 32px rgba(168,85,247,.07);
 }
-
-.resultTopRow  { display: flex; align-items: center; gap: 10px; }
-
-.resultBadge {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 12px; font-weight: 800; color: var(--accent-purple);
-  background: rgba(168,85,247,.1);
-  border: 1px solid rgba(168,85,247,.2);
-  padding: 4px 12px; border-radius: 100px;
+.resultHeader {
+  display: flex; flex-direction: column; gap: 12px;
 }
-.resultBadge .material-symbols-outlined { font-size: 15px !important; }
-
-.resultConfBadge {
-  margin-left: auto;
-  font-size: 11px; font-weight: 800;
-  background: rgba(16,229,107,.1);
-  color: var(--accent-green);
-  border: 1px solid rgba(16,229,107,.2);
-  padding: 4px 12px; border-radius: 100px;
+.resultChip {
+  align-self: flex-start;
+  font-size: 11px; font-weight: 700; color: var(--text-muted);
+  background: var(--surface-hover);
+  padding: 4px 10px; border-radius: 12px;
 }
-
-.resultName { font-size: 19px; font-weight: 900; }
+.resultTitleRow {
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;
+}
+.resultName { font-size: 20px; font-weight: 800; line-height: 1.2; }
+.resultQtyWrap {
+  display: flex; align-items: center; gap: 16px;
+  border: 1px solid var(--border); border-radius: 100px;
+  padding: 6px 14px; flex-shrink: 0;
+}
+.qtyBtn { background: none; border: none; font-size: 18px; line-height: 1; color: var(--text); cursor: pointer; }
+.qtyVal { font-size: 15px; font-weight: 800; min-width: 1ch; text-align: center; }
 
 .resultMacroGrid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
 }
-
-.resultMacroCell {
-  display: flex; flex-direction: column; align-items: center; gap: 3px;
-  background: var(--surface-elevated);
-  border-radius: var(--radius-md);
-  padding: 12px 6px;
-  text-align: center;
+.resultMacroCell2 {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface-hover);
+  border-radius: 16px;
+  padding: 12px;
 }
+.macroCellIcon {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.macroCellIcon .material-symbols-outlined { font-size: 16px; }
+.macroCellData { display: flex; flex-direction: column; gap: 2px; }
+.macroCellLabel { font-size: 12px; color: var(--text-muted); }
+.macroCellVal { font-size: 14px; font-weight: 800; }
 
-.resultMacroCellVal   { font-size: 22px; font-weight: 900; line-height: 1; }
-.resultMacroCellUnit  { font-size: 10px; font-weight: 700; color: var(--text-muted); }
-.resultMacroCellLabel { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); }
+.healthScoreRow {
+  display: flex; align-items: center; gap: 16px;
+  background: var(--surface-hover);
+  border-radius: 16px; padding: 16px;
+}
+.healthScoreIcon {
+  width: 36px; height: 36px; border-radius: 8px; background: rgba(236,72,153,0.1);
+  display: flex; align-items: center; justify-content: center;
+}
+.healthScoreIcon .material-symbols-outlined { font-size: 20px; color: #ec4899; }
+.healthScoreDetail { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.healthScoreTop { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; }
+.healthScoreBar { height: 6px; background: var(--border); border-radius: 100px; overflow: hidden; }
+.healthScoreFill { height: 100%; background: #4ade80; border-radius: 100px; }
 
-.resultActions { display: flex; gap: 10px; }
+.resultActions2 { display: flex; gap: 12px; margin-top: 8px; }
+.fixBtn {
+  flex: 1; padding: 14px;
+  border: 1px solid var(--border); border-radius: 100px;
+  background: none; font-weight: 800; font-size: 15px;
+  display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--text);
+  cursor: pointer;
+}
+.doneBtn {
+  flex: 1; padding: 14px;
+  border: none; border-radius: 100px;
+  background: var(--text); color: var(--bg); font-weight: 800; font-size: 15px;
+  cursor: pointer;
+}
 
 /* ─────────────────────────────────────
    TODAY'S MEALS CARD

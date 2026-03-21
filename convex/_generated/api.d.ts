@@ -12,8 +12,6 @@ import type * as chat from "../chat.js";
 import type * as chat_actions from "../chat_actions.js";
 import type * as checkin_actions from "../checkin_actions.js";
 import type * as checkins from "../checkins.js";
-import type * as convex__generated_api from "../convex/_generated/api.js";
-import type * as convex__generated_server from "../convex/_generated/server.js";
 import type * as daily from "../daily.js";
 import type * as meal_actions from "../meal_actions.js";
 import type * as meals from "../meals.js";
@@ -30,8 +28,6 @@ declare const fullApi: ApiFromModules<{
   chat_actions: typeof chat_actions;
   checkin_actions: typeof checkin_actions;
   checkins: typeof checkins;
-  "convex/_generated/api": typeof convex__generated_api;
-  "convex/_generated/server": typeof convex__generated_server;
   daily: typeof daily;
   meal_actions: typeof meal_actions;
   meals: typeof meals;

@@ -70,9 +70,9 @@ function DoubleRing({
 
 /* ─── Macro Bar ─── */
 function MacroBar({
-  label, current, target, color, emoji,
+  label, current, target, color, emoji, unit = "g"
 }: {
-  label: string; current: number; target: number; color: string; emoji: string;
+  label: string; current: number; target: number; color: string; emoji: string; unit?: string;
 }) {
   const pct = target > 0 ? Math.min((current / target) * 100, 100) : 0;
   return (
@@ -81,9 +81,9 @@ function MacroBar({
         <span className={styles.macroEmoji}>{emoji}</span>
         <span className={styles.macroBarLabel}>{label}</span>
         <span className={styles.macroBarValue} style={{ color }}>
-          {Math.round(current)}<small>g</small>
+          {Math.round(current)}<small>{unit}</small>
         </span>
-        <span className={styles.macroBarTarget}>/ {target}g</span>
+        <span className={styles.macroBarTarget}>/ {target}{unit}</span>
       </div>
       <div className={styles.macroTrack}>
         <div
@@ -135,12 +135,32 @@ function WeekChart({ data }: { data: number[] }) {
   );
 }
 
+function getFromDate(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - (days - 1));
+  return d.toISOString().split("T")[0];
+}
+
 /* ─── Main Page ─── */
 export default function DashboardPage() {
   const today   = new Date().toISOString().split("T")[0];
   const meals   = useQuery(api.meals.getTodayMeals, { date: today }) ?? [];
   const summary = useQuery(api.daily.getDailySummary, { date: today });
   const { user } = useAuth();
+
+  const weightHistory = useQuery(
+    api.progress.getWeightHistory,
+    user?._id ? { userId: user._id as any, fromDate: getFromDate(90), toDate: today } : "skip"
+  );
+  const currentWeight = weightHistory && weightHistory.length > 0 
+    ? weightHistory[weightHistory.length - 1].weightKg 
+    : user?.weightKg;
+
+  const allPhotos = useQuery(api.bodyPhotos.listPhotos, user?._id ? { userId: user._id as any } : "skip");
+  const calorieTrend = useQuery(
+    api.progress.getCalorieTrend,
+    user?._id ? { userId: user._id as any, fromDate: getFromDate(7), toDate: today } : "skip"
+  );
 
   const calorieTarget = user?.calorieGoal ?? 2000;
   const proteinTarget = user?.proteinGoal ?? 150;
@@ -153,8 +173,42 @@ export default function DashboardPage() {
   const burned      = summary?.workoutDone ? 450 : 0;
   const net         = consumed - burned;
 
-  // Mock weekly data
-  const weekData = [1650, 1900, 2100, 1780, net, 0, 0].slice(0, 7);
+  // Real weekly data mapped to MON-SUN
+  const weekData = [0, 0, 0, 0, 0, 0, 0];
+  if (calorieTrend) {
+    calorieTrend.forEach((t) => {
+      // Create local date to avoid timezone shifts
+      const d = new Date(t.date + "T12:00:00Z");
+      const dayIdx = (d.getUTCDay() + 6) % 7;
+      weekData[dayIdx] = t.calories;
+    });
+    // Override today with live data (if consumed > 0)
+    const todayIdx = (new Date().getDay() + 6) % 7;
+    weekData[todayIdx] = consumed;
+  }
+
+  // Calculate Initial/Current photos
+  const fallbackInitial = "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?q=80&w=400&auto=format&fit=crop";
+  const fallbackCurrent = "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?q=80&w=400&auto=format&fit=crop";
+  let initialPhoto = { label: "Initial", date: "OCT 12", active: false, src: fallbackInitial };
+  let currentPhoto = { label: "Current", date: "TODAY", active: true, src: fallbackCurrent };
+
+  if (allPhotos && allPhotos.length > 0) {
+    const newest = allPhotos[0];
+    const oldest = allPhotos[allPhotos.length - 1];
+    initialPhoto = { 
+      label: "Initial", 
+      date: new Date(oldest.date + "T12:00:00Z").toLocaleDateString("en", { month: "short", day: "numeric" }).toUpperCase(), 
+      active: false, 
+      src: oldest.imageData || fallbackInitial 
+    };
+    currentPhoto = { 
+      label: "Current", 
+      date: newest.date === today ? "TODAY" : new Date(newest.date + "T12:00:00Z").toLocaleDateString("en", { month: "short", day: "numeric" }).toUpperCase(), 
+      active: true, 
+      src: newest.imageData || fallbackCurrent 
+    };
+  }
 
   return (
     <div className={styles.page}>
@@ -192,7 +246,7 @@ export default function DashboardPage() {
                 <MacroBar label="Protein" current={protein} target={proteinTarget} color="var(--protein)"  emoji="🥩" />
                 <MacroBar label="Carbs"   current={carbs}   target={carbsTarget}  color="var(--carbs)"   emoji="🌾" />
                 <MacroBar label="Fat"     current={fat}      target={fatTarget}    color="var(--fat)"     emoji="🥑" />
-                <MacroBar label="Burned"  current={burned}   target={600}          color="var(--primary)" emoji="🔥" />
+                <MacroBar label="Burned"  current={burned}   target={600}          color="var(--primary)" emoji="🔥" unit="kcal" />
               </div>
             </div>
           </div>
@@ -260,14 +314,11 @@ export default function DashboardPage() {
           <div className={styles.glassCard}>
             <div className={styles.cardLabel}>Body Progress</div>
             <div className={styles.progressWeight}>
-              <span className={styles.progressWeightVal}>{user?.weightKg ? user.weightKg + " kg" : "--"}</span>
+              <span className={styles.progressWeightVal}>{currentWeight ? currentWeight + " kg" : "--"}</span>
               <span className={styles.progressWeightLabel}>Current Weight</span>
             </div>
             <div className={styles.progressPhotos}>
-              {[
-                { label: "Initial", date: "OCT 12", active: false, src: "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?q=80&w=400&auto=format&fit=crop" },
-                { label: "Current", date: "TODAY",  active: true,  src: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?q=80&w=400&auto=format&fit=crop" },
-              ].map((p) => (
+              {[initialPhoto, currentPhoto].map((p) => (
                 <div key={p.label} className={styles.photoCol}>
                   <div className={`${styles.photoBox} ${p.active ? styles.photoBoxActive : ""}`}>
                     <img src={p.src} alt={p.label} className={styles.photoImg} />

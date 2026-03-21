@@ -89,9 +89,11 @@ export const range = query({
   handler: async (ctx, { userId, fromDate, toDate }) => {
     return await ctx.db
       .query("progress")
-      .withIndex("by_user_date", (q) => q.eq("userId", userId))
-      .filter((q) => q.gte(q.field("date"), fromDate))
-      .filter((q) => q.lte(q.field("date"), toDate))
+      .withIndex("by_user_date", (q) =>
+        q.eq("userId", userId)
+         .gte("date", fromDate)
+         .lte("date", toDate)
+      )
       .order("asc")
       .collect();
   },
@@ -112,17 +114,20 @@ export const getStats = query({
   handler: async (ctx, { userId, fromDate, toDate }) => {
     const rows = await ctx.db
       .query("progress")
-      .withIndex("by_user_date", (q) => q.eq("userId", userId))
-      .filter((q) => q.gte(q.field("date"), fromDate))
-      .filter((q) => q.lte(q.field("date"), toDate))
+      .withIndex("by_user_date", (q) =>
+        q.eq("userId", userId)
+         .gte("date", fromDate)
+         .lte("date", toDate)
+      )
       .order("asc")
       .collect();
 
     const logged = rows.filter((r) => r.caloriesConsumed > 0);
     const daysLogged = logged.length;
+    const totalCalories = logged.reduce((s, r) => s + r.caloriesConsumed, 0);
     const avgCalories =
       daysLogged > 0
-        ? Math.round(logged.reduce((s, r) => s + r.caloriesConsumed, 0) / daysLogged)
+        ? Math.round(totalCalories / daysLogged)
         : 0;
     const avgProtein =
       daysLogged > 0
@@ -149,7 +154,7 @@ export const getStats = query({
     const to = new Date(toDate);
     const totalDays = Math.round((to.getTime() - from.getTime()) / 86_400_000) + 1;
 
-    return { avgCalories, avgProtein, daysLogged, streak, totalDays };
+    return { avgCalories, avgProtein, daysLogged, streak, totalDays, totalCalories };
   },
 });
 
@@ -166,9 +171,11 @@ export const getCalorieTrend = query({
   handler: async (ctx, { userId, fromDate, toDate }) => {
     const rows = await ctx.db
       .query("progress")
-      .withIndex("by_user_date", (q) => q.eq("userId", userId))
-      .filter((q) => q.gte(q.field("date"), fromDate))
-      .filter((q) => q.lte(q.field("date"), toDate))
+      .withIndex("by_user_date", (q) =>
+        q.eq("userId", userId)
+         .gte("date", fromDate)
+         .lte("date", toDate)
+      )
       .order("asc")
       .collect();
 
@@ -201,9 +208,11 @@ export const getMacroTotals = query({
   handler: async (ctx, { userId, fromDate, toDate }) => {
     const rows = await ctx.db
       .query("progress")
-      .withIndex("by_user_date", (q) => q.eq("userId", userId))
-      .filter((q) => q.gte(q.field("date"), fromDate))
-      .filter((q) => q.lte(q.field("date"), toDate))
+      .withIndex("by_user_date", (q) =>
+        q.eq("userId", userId)
+         .gte("date", fromDate)
+         .lte("date", toDate)
+      )
       .collect();
 
     const totalProtein = rows.reduce((s, r) => s + r.proteinConsumed, 0);
@@ -249,9 +258,11 @@ export const getWeightHistory = query({
   handler: async (ctx, { userId, fromDate, toDate }) => {
     const rows = await ctx.db
       .query("progress")
-      .withIndex("by_user_date", (q) => q.eq("userId", userId))
-      .filter((q) => q.gte(q.field("date"), fromDate))
-      .filter((q) => q.lte(q.field("date"), toDate))
+      .withIndex("by_user_date", (q) =>
+        q.eq("userId", userId)
+         .gte("date", fromDate)
+         .lte("date", toDate)
+      )
       .order("asc")
       .collect();
 

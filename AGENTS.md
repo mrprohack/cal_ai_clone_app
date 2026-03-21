@@ -53,6 +53,7 @@
 | `convex/meals.ts` | log, byDate, remove, getTodayMeals |
 | `convex/progress.ts` | progress CRUD |
 | `convex/foods.ts` | list, search |
+| `convex/seedFoods.ts` | run, clearAndSeed |
 | `convex/bodyPhotos.ts` | savePhoto, listPhotos, getWeeklyPhotos, removePhoto |
 | `convex/mealPlans.ts` | savePlan, listPlans, getLatestPlan, togglePin, removePlan |
 

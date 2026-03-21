@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useAuth } from "@/lib/auth-context";
 import { Navbar } from "@/components/Navbar";
@@ -56,6 +56,7 @@ function Skeleton({ w = "100%", h = 24 }: { w?: string; h?: number }) {
 /* ── Main Page ── */
 export default function ProgressPage() {
   const [period, setPeriod] = useState<Period>("7d");
+  const [weightInput, setWeightInput] = useState("");
   const { user } = useAuth();
 
   const days = getPeriodDays(period);
@@ -90,6 +91,8 @@ export default function ProgressPage() {
     api.progress.getWeightHistory,
     skip ?? { userId, fromDate: getFromDate(90), toDate: today }
   );
+
+  const logWeight = useMutation(api.progress.logWeight);
 
   // ── Derived chart values ──
   const trend = trendRaw ?? [];
@@ -306,14 +309,37 @@ export default function ProgressPage() {
               )}
             </div>
 
-            {/* Weight history (if available) */}
-            {weightHistory && weightHistory.length > 0 && (
-              <div className={styles.card}>
-                <div className={styles.cardHeader}>
-                  <span className="material-symbols-outlined">monitor_weight</span>
-                  <strong>Weight History</strong>
-                  <span className={styles.cardChip}>Last 90 Days</span>
-                </div>
+            {/* Weight history (always show to allow input) */}
+            <div className={styles.card}>
+              <div className={styles.cardHeader}>
+                <span className="material-symbols-outlined">monitor_weight</span>
+                <strong>Weight History</strong>
+                <span className={styles.cardChip}>Last 90 Days</span>
+              </div>
+              
+              <div className={styles.weightInputRow}>
+                <input
+                  type="number"
+                  step="0.1"
+                  placeholder="Today's Weight (kg)"
+                  value={weightInput}
+                  onChange={(e) => setWeightInput(e.target.value)}
+                  className={styles.weightInput}
+                />
+                <button
+                  onClick={async () => {
+                    if (!weightInput || isNaN(Number(weightInput)) || !userId) return;
+                    await logWeight({ userId, date: today, weightKg: Number(weightInput) });
+                    setWeightInput("");
+                  }}
+                  className={styles.weightBtn}
+                  disabled={!weightInput || isNaN(Number(weightInput))}
+                >
+                  Log
+                </button>
+              </div>
+
+              {weightHistory && weightHistory.length > 0 ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {weightHistory.slice(-7).map((w) => (
                     <div key={w.date} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", background: "var(--surface-elevated)", borderRadius: "var(--radius-sm)", fontSize: 13 }}>
@@ -335,8 +361,12 @@ export default function ProgressPage() {
                     );
                   })()}
                 </div>
-              </div>
-            )}
+              ) : (
+                <div style={{ textAlign: "center", padding: "16px 0", color: "var(--text-muted)", fontSize: 13 }}>
+                  No weight logged yet.
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Right column */}
@@ -357,7 +387,7 @@ export default function ProgressPage() {
                   {[
                     {
                       label: "Total Calories",
-                      value: `${((stats?.avgCalories ?? 0) * (stats?.daysLogged ?? 0)).toLocaleString()} kcal`,
+                      value: `${(stats?.totalCalories ?? 0).toLocaleString()} kcal`,
                       icon: "🔥",
                     },
                     {

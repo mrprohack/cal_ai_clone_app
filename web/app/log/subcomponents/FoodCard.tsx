@@ -1,5 +1,7 @@
 "use client"
 
+import React from "react"
+
 import styles from "../Log.module.css"
 import type { FoodCardProps } from "../types"
 

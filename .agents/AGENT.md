@@ -161,6 +161,7 @@ web/
 │   ├── daily.ts                    # Daily summary helpers
 │   ├── progress.ts                 # Progress snapshots
 │   ├── seed.ts                     # Dev seed data
+│   ├── seedFoods.ts                # Dev seed data for Indian Foods list
 │   └── _generated/                 # AUTO-GENERATED — never edit manually
 │
 └── lib/
@@ -623,10 +624,11 @@ web/
 │   ├── daily.ts                    # Daily summary helpers
 │   ├── progress.ts                 # Progress snapshots
 │   ├── seed.ts                     # Dev seed data
+│   ├── seedFoods.ts                # Dev seed data for Indian Foods list
 │   └── _generated/                 # AUTO-GENERATED — never edit manually
 │
 └── lib/
     └── auth-context.tsx            # useAuth() hook — session token in localStorage
 ```
 
-> **Last audited:** 2026-03-20 · Added body-scan, meal-plan pages + API routes + Convex modules (bodyPhotos, mealPlans) + schema tables. Update this date whenever you audit the tree.
+> **Last audited:** 2026-03-21 · Added seedFoods.ts for comprehensive Quick Add Indian food database seeding.

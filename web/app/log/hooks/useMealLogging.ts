@@ -41,7 +41,7 @@ export function useMealLogging() {
 
   const handleLogFromAI = async (aiResult: AiMealResult, mealType: string, userId: string, date: string) => {
     return handleLog({
-      userId,
+      userId: userId as Id<"users">,
       name: aiResult.name,
       mealType,
       calories: aiResult.calories,
@@ -77,7 +77,7 @@ export function useMealLogging() {
     const fat = parseFloat(form.fat) || 0
 
     return handleLog({
-      userId,
+      userId: userId as Id<"users">,
       name: form.name,
       mealType,
       calories: cals,

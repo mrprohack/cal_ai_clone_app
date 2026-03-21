@@ -25,6 +25,9 @@ echo "-> Starting Next.js Dev server..."
 # Give Convex a moment to initialize just in case
 sleep 2
 
+echo "-> Cleaning Next.js cache..."
+rm -rf .next/cache
+
 npm run dev &
 NEXT_PID=$!
 
