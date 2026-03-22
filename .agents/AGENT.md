@@ -538,6 +538,11 @@ cd web && npx convex dev
 cd web && npm run build
 ```
 
+### 🔑 Test Credentials
+For accessing authenticated routes/pages directly inside testing:
+- **Email:** `demo@calai.app`
+- **Password:** `Demo1234!`
+
 ---
 
 ## 17. WHAT THIS AGENT SHOULD PRIORITIZE
@@ -634,4 +639,4 @@ web/
 └── lib/
     └── auth-context.tsx            # useAuth() hook — session token in localStorage
 ```
-> **Last audited:** 2026-03-21 · Migrated entire application from Convex to MySQL incorporating custom Server Actions framework for all data queries and mutations.
+> **Last audited:** 2026-03-22 · Improved UX and UI styling across onboarding steps for responsiveness and streamlined layouts.

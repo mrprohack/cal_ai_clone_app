@@ -67,9 +67,18 @@ export default function OnboardingPage() {
 
       <div className={styles.card}>
         
-        {/* Progress Bar */}
+        {/* Progress Bar with Steps */}
         <div className={styles.progressWrap}>
           <div className={styles.progressBar} style={{ width: `${progressPct}%` }} />
+        </div>
+        
+        <div className={styles.stepperDots}>
+          {[1, 2, 3, 4].map((s) => (
+            <div 
+              key={s} 
+              className={`${styles.dot} ${step >= s ? styles.dotActive : ""}`}
+            />
+          ))}
         </div>
 
         {/* Dynamic Header */}
@@ -96,14 +105,18 @@ export default function OnboardingPage() {
                 className={`${styles.choiceCard} ${styles.choiceCardCol} ${gender === "male" ? styles.choiceCardActive : ""}`}
                 onClick={() => { setGender("male"); handleNext(); }}
               >
-                <span className={`material-symbols-outlined ${styles.choiceIcon}`}>man</span>
+                <div className={styles.choiceIconWrapper}>
+                  <span className={`material-symbols-outlined ${styles.choiceIcon}`}>man</span>
+                </div>
                 <span className={styles.choiceLabel}>Male</span>
               </button>
               <button 
                 className={`${styles.choiceCard} ${styles.choiceCardCol} ${gender === "female" ? styles.choiceCardActive : ""}`}
                 onClick={() => { setGender("female"); handleNext(); }}
               >
-                <span className={`material-symbols-outlined ${styles.choiceIcon}`}>woman</span>
+                <div className={styles.choiceIconWrapper}>
+                  <span className={`material-symbols-outlined ${styles.choiceIcon}`}>woman</span>
+                </div>
                 <span className={styles.choiceLabel}>Female</span>
               </button>
             </div>
@@ -117,22 +130,25 @@ export default function OnboardingPage() {
               <div className={styles.field}>
                 <label className={styles.label}>Age</label>
                 <div className={styles.inputWrap}>
-                  <input type="number" className={styles.input} value={ageYears} onChange={e => setAgeYears(e.target.value)} autoFocus />
+                  <span className={`material-symbols-outlined ${styles.inputIcon}`}>calendar_today</span>
+                  <input type="number" className={styles.input} value={ageYears} onChange={e => setAgeYears(e.target.value)} autoFocus placeholder="30" />
                   <span className={styles.inputUnit}>years</span>
                 </div>
               </div>
-              <div style={{ display: "flex", gap: 16 }}>
-                <div className={styles.field} style={{ flex: 1 }}>
+              <div className={styles.statsRow}>
+                <div className={styles.field}>
                   <label className={styles.label}>Height</label>
                   <div className={styles.inputWrap}>
-                    <input type="number" className={styles.input} value={heightCm} onChange={e => setHeightCm(e.target.value)} />
+                    <span className={`material-symbols-outlined ${styles.inputIcon}`}>height</span>
+                    <input type="number" className={styles.input} value={heightCm} onChange={e => setHeightCm(e.target.value)} placeholder="175" />
                     <span className={styles.inputUnit}>cm</span>
                   </div>
                 </div>
-                <div className={styles.field} style={{ flex: 1 }}>
+                <div className={styles.field}>
                   <label className={styles.label}>Weight</label>
                   <div className={styles.inputWrap}>
-                    <input type="number" className={styles.input} value={weightKg} onChange={e => setWeightKg(e.target.value)} />
+                    <span className={`material-symbols-outlined ${styles.inputIcon}`}>monitor_weight</span>
+                    <input type="number" className={styles.input} value={weightKg} onChange={e => setWeightKg(e.target.value)} placeholder="70" />
                     <span className={styles.inputUnit}>kg</span>
                   </div>
                 </div>
@@ -155,11 +171,14 @@ export default function OnboardingPage() {
                   className={`${styles.choiceCard} ${activityLevel === opt.id ? styles.choiceCardActive : ""}`}
                   onClick={() => setActivityLevel(opt.id)}
                 >
-                  <span className={`material-symbols-outlined ${styles.choiceIcon}`}>{opt.icon}</span>
+                  <div className={styles.choiceIconWrapperSmall}>
+                    <span className={`material-symbols-outlined ${styles.choiceIcon}`}>{opt.icon}</span>
+                  </div>
                   <div className={styles.choiceContent}>
                     <span className={styles.choiceLabel}>{opt.label}</span>
                     <span className={styles.choiceSub}>{opt.sub}</span>
                   </div>
+                  {activityLevel === opt.id && <span className={`material-symbols-outlined ${styles.checkIcon}`}>check_circle</span>}
                 </div>
               ))}
             </div>
@@ -179,11 +198,14 @@ export default function OnboardingPage() {
                   className={`${styles.choiceCard} ${goal === opt.id ? styles.choiceCardActive : ""}`}
                   onClick={() => setGoal(opt.id)}
                 >
-                  <span className={`material-symbols-outlined ${styles.choiceIcon}`}>{opt.icon}</span>
+                  <div className={styles.choiceIconWrapperSmall}>
+                    <span className={`material-symbols-outlined ${styles.choiceIcon}`}>{opt.icon}</span>
+                  </div>
                   <div className={styles.choiceContent}>
                     <span className={styles.choiceLabel}>{opt.label}</span>
                     <span className={styles.choiceSub}>{opt.sub}</span>
                   </div>
+                  {goal === opt.id && <span className={`material-symbols-outlined ${styles.checkIcon}`}>check_circle</span>}
                 </div>
               ))}
             </div>
@@ -193,14 +215,15 @@ export default function OnboardingPage() {
         {/* Footer actions */}
         <div className={styles.footer}>
           {step > 1 && (
-            <button className={styles.btnBack} onClick={handleBack} disabled={submitting}>
+            <button className={styles.btnBack} onClick={handleBack} disabled={submitting} aria-label="Go back">
               <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span>
+              <span className={styles.btnBackLabel}>Back</span>
             </button>
           )}
-          <button className={styles.btnNext} onClick={handleNext} disabled={submitting || (step === 2 && (!ageYears || !heightCm || !weightKg))}>
+          <button className={styles.btnNext} onClick={handleNext} disabled={submitting || (step === 2 && (!ageYears || !heightCm || !weightKg))} aria-label={step === STEPS ? "Finish onboarding" : "Continue to next step"}>
             {submitting ? <span className={styles.spinner} /> : (
               <>
-                {step === STEPS ? "Finish" : "Continue"}
+                <span>{step === STEPS ? "Finish" : "Continue"}</span>
                 {step !== STEPS && <span className="material-symbols-outlined">arrow_forward</span>}
               </>
             )}

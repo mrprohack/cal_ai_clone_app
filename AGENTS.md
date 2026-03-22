@@ -26,6 +26,10 @@
 - **Dev server:** `http://localhost:3004` (`cd web && npm run dev`)
 - **Type check:** `cd web && npx tsc --noEmit`
 
+### 🔑 Test Credentials
+- **Email:** `demo@calai.app`
+- **Password:** `Demo1234!`
+
 ## Page Map
 | Route | File | Purpose |
 |-------|------|---------|

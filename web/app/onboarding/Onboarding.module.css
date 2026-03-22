@@ -28,8 +28,8 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 48px;
-  box-shadow: 0 24px 80px rgba(0,0,0,0.3);
+  padding: 40px;
+  box-shadow: 0 32px 64px -12px rgba(0, 0, 0, 0.4);
   position: relative;
   z-index: 1;
   animation: scaleUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -38,13 +38,21 @@
 }
 
 @keyframes scaleUp {
-  from { opacity: 0; transform: scale(0.95) translateY(20px); }
+  from { opacity: 0; transform: scale(0.98) translateY(20px); }
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 @media (max-width: 600px) {
-  .page { padding: 16px; align-items: flex-start; }
-  .card { padding: 32px 24px; min-height: 85vh; justify-content: space-between; border-radius: 24px; }
+  .page { padding: 0; align-items: stretch; overflow-x: hidden; }
+  .card { 
+    padding: 24px; 
+    min-height: 100vh; 
+    border-radius: 0; 
+    border: none; 
+    box-shadow: none; 
+    justify-content: flex-start;
+  }
+  .blob1, .blob2 { display: none; }
 }
 
 /* Header */
@@ -69,18 +77,40 @@
 /* Progress bar */
 .progressWrap {
   width: 100%;
-  height: 6px;
+  height: 4px;
   background: var(--surface-elevated);
   border-radius: 10px;
-  margin-bottom: 40px;
+  margin-bottom: 24px;
   overflow: hidden;
 }
 
 .progressBar {
   height: 100%;
-  background: var(--primary);
+  background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 100%);
   border-radius: 10px;
   transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Stepper Dots */
+.stepperDots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 32px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: all 0.3s ease;
+}
+
+.dotActive {
+  background: var(--primary);
+  transform: scale(1.2);
+  box-shadow: 0 0 8px rgba(59, 150, 245, 0.4);
 }
 
 /* Step content container */
@@ -98,7 +128,7 @@
 .optionsGrid {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .optionsGridRow {
@@ -107,17 +137,24 @@
   gap: 16px;
 }
 
+@media (max-width: 600px) {
+  .optionsGridRow {
+    grid-template-columns: 1fr;
+  }
+}
+
 .choiceCard {
   background: var(--surface-elevated);
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 20px;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 16px;
-  transition: all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   text-align: left;
+  position: relative;
 }
 
 .choiceCardCol {
@@ -130,33 +167,88 @@
 
 .choiceCard:hover {
   border-color: rgba(59,150,245,0.4);
-  background: rgba(59,150,245,0.05);
+  background: rgba(255, 255, 255, 0.02);
   transform: translateY(-2px);
 }
 
 .choiceCardActive {
   border-color: var(--primary);
-  background: rgba(59,150,245,0.1);
+  background: rgba(59, 150, 245, 0.04);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
+.choiceIconWrapper, .choiceIconWrapperSmall {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(59, 150, 245, 0.1);
+  color: var(--primary-light);
+  flex-shrink: 0;
+  transition: all 0.25s ease;
+}
+
+.choiceIconWrapper {
+  width: 64px;
+  height: 64px;
+}
+
+.choiceIconWrapperSmall {
+  width: 44px;
+  height: 44px;
+}
+
+.choiceCardActive .choiceIconWrapper, 
+.choiceCardActive .choiceIconWrapperSmall {
+  background: var(--primary);
+  color: #fff;
 }
 
 .choiceIcon {
   font-size: 32px !important;
-  color: var(--primary-light);
 }
 
-.choiceCardCol .choiceIcon {
-  font-size: 48px !important;
+.choiceIconWrapper .choiceIcon {
+  font-size: 40px !important;
 }
 
-.choiceContent { display: flex; flex-direction: column; gap: 4px; }
-.choiceLabel { font-size: 16px; font-weight: 800; color: var(--text); }
-.choiceSub { font-size: 13px; color: var(--text-muted); line-height: 1.4; }
+.choiceContent { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.choiceLabel { font-size: 16px; font-weight: 700; color: var(--text); }
+.choiceSub { font-size: 13px; color: var(--text-secondary); line-height: 1.4; }
+
+.checkIcon {
+  color: var(--primary);
+  font-size: 24px !important;
+  margin-left: auto;
+  animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+  from { transform: scale(0.5); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
 
 /* Numeric inputs grid (Age, Height, Weight) */
 .statsGrid {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
+}
+
+.statsRow {
+  display: flex;
+  gap: 16px;
+}
+
+.statsRow > .field {
+  flex: 1;
+}
+
+@media (max-width: 600px) {
+  .statsRow {
+    flex-direction: column;
+    gap: 20px;
+  }
 }
 
 .field {
@@ -166,10 +258,10 @@
 }
 
 .label {
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   letter-spacing: 0.5px;
 }
 
@@ -177,16 +269,20 @@
   display: flex;
   align-items: center;
   background: var(--surface-elevated);
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 0 16px;
-  transition: border-color 0.2s;
+  transition: all 0.2s;
 }
 
-.inputWrap:focus-within { border-color: var(--primary); }
+.inputWrap:focus-within { 
+  border-color: var(--primary); 
+  box-shadow: 0 0 0 1px var(--primary);
+  background: rgba(255, 255, 255, 0.01);
+}
 
-.icon {
-  color: var(--text-muted);
+.inputIcon {
+  color: var(--text-secondary);
   font-size: 20px !important;
   margin-right: 12px;
 }
@@ -197,24 +293,27 @@
   border: none;
   padding: 16px 0;
   font-family: inherit;
-  font-size: 18px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 600;
   color: var(--text);
   outline: none;
+  width: 100%;
+  min-width: 0;
 }
 
 .inputUnit {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
   margin-left: 8px;
 }
 
 /* Footer / Navigation buttons */
 .footer {
   display: flex;
-  gap: 16px;
-  margin-top: 40px;
+  gap: 12px;
+  margin-top: auto; /* Push to bottom on mobile */
+  padding-top: 40px;
 }
 
 .btnBack {
@@ -222,15 +321,29 @@
   border: 1px solid var(--border);
   color: var(--text);
   border-radius: var(--radius-md);
-  padding: 18px;
-  font-size: 16px;
-  font-weight: 800;
+  padding: 16px;
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.btnBack:hover { background: rgba(255,255,255,0.05); }
+.btnBack:hover { 
+  background: rgba(255,255,255,0.03); 
+  border-color: var(--text-secondary);
+}
+
+.btnBackLabel {
+  font-size: 15px;
+}
+
+@media (max-width: 600px) {
+  .btnBackLabel { display: none; }
+  .btnBack { padding: 18px; }
+}
 
 .btnNext {
   flex: 1;
@@ -238,26 +351,40 @@
   color: #fff;
   border: none;
   border-radius: var(--radius-md);
-  padding: 18px;
-  font-size: 16px;
-  font-weight: 800;
+  padding: 16px;
+  font-size: 15px;
+  font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  transition: background 0.2s, transform 0.1s;
+  gap: 8px;
+  transition: all 0.2s ease;
 }
 
-.btnNext:hover:not(:disabled) { background: var(--primary-light); }
-.btnNext:active:not(:disabled) { transform: scale(0.98); }
-.btnNext:disabled { opacity: 0.6; cursor: not-allowed; }
+.btnNext:hover:not(:disabled) { 
+  background: var(--primary-light); 
+  transform: translateY(-1px);
+}
+
+.btnNext:active:not(:disabled) { 
+  transform: translateY(0); 
+}
+
+.btnNext:disabled { 
+  opacity: 0.6; 
+  cursor: not-allowed; 
+}
 
 .spinner {
-  width: 22px;
-  height: 22px;
-  border: 3px solid rgba(255,255,255,0.3);
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255,255,255,0.3);
   border-top-color: #fff;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
