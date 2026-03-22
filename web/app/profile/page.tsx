@@ -1,10 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useMutation, useQuery, useConvex } from "convex/react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { updateProfile, deleteAccount as doDeleteAccount, exportData, getUserPlan } from "@/lib/actions/users";
 import Link from "next/link";
-import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
 import { Navbar } from "@/components/Navbar";
 import { useAuth } from "@/lib/auth-context";
 import styles from "./Profile.module.css";
@@ -195,16 +193,24 @@ function Toast({ msg, type, visible }: { msg: string; type: "success" | "error";
 ───────────────────────────────────────────── */
 export default function ProfilePage() {
   const { user, loading, signOut } = useAuth();
-  const convex = useConvex();
-  const updateProfile = useMutation(api.users.updateProfile);
-  const doDeleteAccount = useMutation(api.users.deleteAccount);
+  const userId = user?.id ? Number(user.id) : null;
 
-  // Live plan from DB
-  const userId = user?._id ? (user._id as unknown as Id<"users">) : null;
-  const planInfo = useQuery(
-    api.users.getUserPlan,
-    userId ? { userId } : "skip"
-  );
+  const [planInfo, setPlanInfo] = useState<any>(null);
+
+  const fetchPlan = useCallback(async () => {
+    if (!userId) return;
+    try {
+      const res = await getUserPlan(userId);
+      setPlanInfo(res);
+    } catch (err) {
+      console.error("fetchPlan error:", err);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    fetchPlan();
+  }, [fetchPlan]);
+
   const currentPlan = (planInfo?.plan ?? "free") as "free" | "pro" | "ultra";
 
   const PLAN_META = {
@@ -239,7 +245,7 @@ export default function ProfilePage() {
   const [deleting,   setDeleting]   = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
 
-  /* Hydrate from Convex user */
+  /* Hydrate from user */
   useEffect(() => {
     if (!user) return;
     setCalories(user.calorieGoal ?? 2000);
@@ -266,9 +272,8 @@ export default function ProfilePage() {
     if (saveState === "saving") return;
     setSaveState("saving");
     try {
-      if (user?._id) {
-        await updateProfile({
-          userId:      user._id as Id<"users">,
+      if (userId) {
+        await updateProfile(userId, {
           calorieGoal: calories,
           proteinGoal: protein,
           carbsGoal:   carbs,
@@ -287,14 +292,14 @@ export default function ProfilePage() {
   }
 
   async function saveAccountField(field: string, value: string) {
-    if (!user?._id) return;
-    const patch: Record<string, unknown> = { userId: user._id as Id<"users"> };
+    if (!userId) return;
+    const patch: Record<string, unknown> = {};
     if (field === "name")     { patch.name     = value; setDisplayName(value); }
     if (field === "heightCm") { patch.heightCm = Number(value); setHeightCm(value); }
     if (field === "ageYears") { patch.ageYears = Number(value); setAgeYears(value); }
     if (field === "gender")   { patch.gender   = value; setGender(value); }
     try {
-      await updateProfile(patch as Parameters<typeof updateProfile>[0]);
+      await updateProfile(userId, patch);
       showToast("Profile updated!", "success");
     } catch {
       showToast("Could not save change.", "error");
@@ -302,10 +307,10 @@ export default function ProfilePage() {
   }
 
   async function handleExport() {
-    if (!user?._id) return;
+    if (!userId) return;
     setExporting(true);
     try {
-      const data = await convex.query(api.users.exportData, { userId: user._id as Id<"users"> });
+      const data = await exportData(userId);
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -323,10 +328,10 @@ export default function ProfilePage() {
 
   async function handleDeleteAccount() {
     if (!window.confirm("Are you sure? This will permanently delete all your data and cannot be undone.")) return;
-    if (!user?._id) return;
+    if (!userId) return;
     setDeleting(true);
     try {
-      await doDeleteAccount({ userId: user._id as Id<"users"> });
+      await doDeleteAccount(userId);
       await signOut();
       window.location.href = "/";
     } catch {

@@ -1,7 +1,5 @@
 import { useState } from "react"
-import { useMutation } from "convex/react"
-import { api } from "@/convex/_generated/api"
-import type { Id } from "@/convex/_generated/dataModel"
+import { log as logMeal, remove as removeMeal } from "@/lib/actions/meals"
 import type { ManualForm } from "../types"
 import type { AiMealResult } from "../types"
 
@@ -11,11 +9,9 @@ import type { AiMealResult } from "../types"
  */
 export function useMealLogging() {
   const [saving, setSaving] = useState(false)
-  const logMeal = useMutation(api.meals.log)
-  const removeMeal = useMutation(api.meals.remove)
 
   const handleLog = async (data: {
-    userId: Id<"users">
+    userId: number
     name: string
     mealType: string
     calories: number
@@ -41,7 +37,7 @@ export function useMealLogging() {
 
   const handleLogFromAI = async (aiResult: AiMealResult, mealType: string, userId: string, date: string) => {
     return handleLog({
-      userId: userId as Id<"users">,
+      userId: Number(userId),
       name: aiResult.name,
       mealType,
       calories: aiResult.calories,
@@ -55,9 +51,9 @@ export function useMealLogging() {
     })
   }
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
     try {
-      await removeMeal({ id: id as any })
+      await removeMeal(id)
       return { success: true }
     } catch (error) {
       console.error("Failed to delete meal:", error)
@@ -77,7 +73,7 @@ export function useMealLogging() {
     const fat = parseFloat(form.fat) || 0
 
     return handleLog({
-      userId: userId as Id<"users">,
+      userId: Number(userId),
       name: form.name,
       mealType,
       calories: cals,

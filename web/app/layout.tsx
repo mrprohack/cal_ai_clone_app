@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Space_Grotesk, Barlow_Condensed } from "next/font/google";
-import { ConvexClientProvider } from "./ConvexClientProvider";
+import { AuthProvider } from "@/lib/auth-context";
 import "./globals.css";
 
 /* Self-hosted via next/font — zero network RTT at runtime */
@@ -52,7 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className={`${spaceGrotesk.className} ${barlowCondensed.variable}`}>
-        <ConvexClientProvider>{children}</ConvexClientProvider>
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

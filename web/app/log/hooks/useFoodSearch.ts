@@ -1,22 +1,28 @@
 import { useState, useEffect, useMemo } from "react"
-import { useQuery } from "convex/react"
-import { api } from "@/convex/_generated/api"
+import { search as searchFoods } from "@/lib/actions/foods"
 import type { DBFood } from "../types"
 
 /**
  * useFoodSearch - Hook for food search with AI-powered suggestions
- * Wraps convex search query and integrates AI suggestions
+ * Wraps search action and integrates AI suggestions
  */
 export function useFoodSearch(initialQuery = "") {
   const [query, setQuery] = useState(initialQuery)
   const [aiSuggestions, setAiSuggestions] = useState<DBFood[]>([])
   const [loadingSuggestions, setLoadingSuggestions] = useState(false)
+  const [dbResult, setDbResult] = useState<DBFood[]>([])
 
-  // Convex database search
-  const dbResult = useQuery(api.foods.search, {
-    searchQuery: query,
-    category: "All",
-  })
+  useEffect(() => {
+    const fetchDbFoods = async () => {
+      try {
+        const res = await searchFoods(query, "All")
+        setDbResult(res as DBFood[] || [])
+      } catch (err) {
+        console.error("searchFoods error:", err)
+      }
+    }
+    fetchDbFoods()
+  }, [query])
 
   // Fetch AI suggestions when query is short or empty
   useEffect(() => {

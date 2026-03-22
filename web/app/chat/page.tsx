@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { getStats } from "@/lib/actions/progress";
+import { byDate as getTodayMeals, range as getMealsRange } from "@/lib/actions/meals";
 import { Navbar } from "@/components/Navbar";
 import styles from "./Chat.module.css";
 
@@ -40,7 +40,7 @@ function renderMd(text: string) {
 
 export default function ChatPage() {
   const { user } = useAuth();
-  const userId = user?._id as any;
+  const userId = user?.id ? Number(user.id) : null;
 
   // Dates for context
   const todayDate = new Date();
@@ -49,9 +49,29 @@ export default function ChatPage() {
   lastMonthDate.setDate(lastMonthDate.getDate() - 30);
   const fromDate = lastMonthDate.toISOString().split("T")[0];
 
-  const todayMeals = useQuery(api.meals.byDate, userId ? { userId, date: toDate } : "skip");
-  const pastMeals = useQuery(api.meals.range, userId ? { userId, fromDate, toDate } : "skip");
-  const stats = useQuery(api.progress.getStats, userId ? { userId, fromDate, toDate } : "skip");
+  const [todayMeals, setTodayMeals] = useState<any[]>([]);
+  const [pastMeals, setPastMeals] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>(null);
+
+  const fetchData = useCallback(async () => {
+    if (!userId) return;
+    try {
+      const [_today, _past, _stats] = await Promise.all([
+        getTodayMeals(userId, toDate),
+        getMealsRange(userId, fromDate, toDate),
+        getStats(userId, fromDate, toDate),
+      ]);
+      setTodayMeals(_today || []);
+      setPastMeals(_past || []);
+      setStats(_stats);
+    } catch (err) {
+      console.error("fetchData error:", err);
+    }
+  }, [userId, toDate, fromDate]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   // Calculate today's totals
   const todayTotals = (todayMeals || []).reduce((acc: any, m: any) => ({

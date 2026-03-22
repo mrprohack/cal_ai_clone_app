@@ -1,7 +1,10 @@
 "use client";
 
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { useState, useEffect, useCallback } from "react";
+import { getTodayMeals } from "@/lib/actions/meals";
+import { getDailySummary } from "@/lib/actions/daily";
+import { getWeightHistory, getStats, getCalorieTrend, getDailyProgress, logWater } from "@/lib/actions/progress";
+import { listPhotos } from "@/lib/actions/bodyPhotos";
 import { Navbar } from "@/components/Navbar";
 import { useAuth } from "@/lib/auth-context";
 import Link from "next/link";
@@ -143,38 +146,70 @@ function getFromDate(days: number): string {
 
 /* ─── Main Page ─── */
 export default function DashboardPage() {
-  const today   = new Date().toISOString().split("T")[0];
-  const meals   = useQuery(api.meals.getTodayMeals, { date: today }) ?? [];
-  const summary = useQuery(api.daily.getDailySummary, { date: today });
+  const today = new Date().toISOString().split("T")[0];
   const { user } = useAuth();
 
-  const weightHistory = useQuery(
-    api.progress.getWeightHistory,
-    user?._id ? { userId: user._id as any, fromDate: getFromDate(90), toDate: today } : "skip"
-  );
-  const currentWeight = weightHistory && weightHistory.length > 0 
-    ? weightHistory[weightHistory.length - 1].weightKg 
-    : user?.weightKg;
+  const [meals, setMeals] = useState<any[]>([]);
+  const [summary, setSummary] = useState<any>(null);
+  const [weightHistory, setWeightHistory] = useState<any[]>([]);
+  const [allPhotos, setAllPhotos] = useState<any[]>([]);
+  const [calorieTrend, setCalorieTrend] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>(null);
+  const [dailyProgress, setDailyProgress] = useState<any>(null);
+  const [loadingData, setLoadingData] = useState(true);
 
-  const allPhotos = useQuery(api.bodyPhotos.listPhotos, user?._id ? { userId: user._id as any } : "skip");
-  const calorieTrend = useQuery(
-    api.progress.getCalorieTrend,
-    user?._id ? { userId: user._id as any, fromDate: getFromDate(7), toDate: today } : "skip"
-  );
-  const stats = useQuery(
-    api.progress.getStats,
-    user?._id ? { userId: user._id as any, fromDate: getFromDate(30), toDate: today } : "skip"
-  );
+  const fetchDashboardData = useCallback(async () => {
+    if (!user || !user.id) return;
+
+    try {
+      const uId = Number(user.id);
+      const [
+        mealsRes,
+        summaryRes,
+        weightRes,
+        photosRes,
+        trendRes,
+        statsRes,
+        progressRes
+      ] = await Promise.all([
+        getTodayMeals(today), // wait, checking if getTodayMeals from actions fits or use byDate(uId, today)
+        getDailySummary(uId, today),
+        getWeightHistory(uId, getFromDate(90), today),
+        listPhotos(uId),
+        getCalorieTrend(uId, getFromDate(7), today),
+        getStats(uId, getFromDate(30), today),
+        getDailyProgress(uId, today)
+      ]);
+
+      setMeals(mealsRes || []);
+      setSummary(summaryRes);
+      setWeightHistory(weightRes || []);
+      setAllPhotos(photosRes || []);
+      setCalorieTrend(trendRes || []);
+      setStats(statsRes);
+      setDailyProgress(progressRes);
+    } catch (err) {
+      console.error("Dashboard data fetch error:", err);
+    } finally {
+      setLoadingData(false);
+    }
+  }, [user, today]);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
+
   const streak = stats?.streak ?? 0;
-
-  const logWater = useMutation(api.progress.logWater);
-  const dailyProgress = useQuery(api.progress.getDailyProgress, user?._id ? { userId: user._id as any, date: today } : "skip");
   const waterMl = dailyProgress?.waterMl ?? 0;
   const waterTarget = 3000;
 
   async function handleAddWater() {
-    if (!user?._id) return;
-    await logWater({ userId: user._id as any, date: today, waterMl: 250 });
+    if (!user || !user.id) return;
+    const uId = Number(user.id);
+    await logWater(uId, today, 250);
+    // Refresh
+    const progressRes = await getDailyProgress(uId, today);
+    setDailyProgress(progressRes);
   }
 
   const calorieTarget = user?.calorieGoal ?? 2000;
@@ -191,22 +226,23 @@ export default function DashboardPage() {
   // Real weekly data mapped to MON-SUN
   const weekData = [0, 0, 0, 0, 0, 0, 0];
   if (calorieTrend) {
-    calorieTrend.forEach((t) => {
-      // Create local date to avoid timezone shifts
+    calorieTrend.forEach((t: any) => {
       const d = new Date(t.date + "T12:00:00Z");
       const dayIdx = (d.getUTCDay() + 6) % 7;
       weekData[dayIdx] = t.calories;
     });
-    // Override today with live data (if consumed > 0)
     const todayIdx = (new Date().getDay() + 6) % 7;
     weekData[todayIdx] = consumed;
   }
 
-  // Calculate Initial/Current photos
   const fallbackInitial = "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?q=80&w=400&auto=format&fit=crop";
   const fallbackCurrent = "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?q=80&w=400&auto=format&fit=crop";
   let initialPhoto = { label: "Initial", date: "OCT 12", active: false, src: fallbackInitial };
   let currentPhoto = { label: "Current", date: "TODAY", active: true, src: fallbackCurrent };
+
+  const currentWeight = weightHistory && weightHistory.length > 0 
+    ? weightHistory[weightHistory.length - 1].weightKg 
+    : user?.weightKg;
 
   if (allPhotos && allPhotos.length > 0) {
     const newest = allPhotos[0];

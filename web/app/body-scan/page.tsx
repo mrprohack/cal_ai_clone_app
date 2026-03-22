@@ -1,11 +1,9 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { listPhotos, savePhoto, removePhoto } from "@/lib/actions/bodyPhotos";
 import { Navbar } from "@/components/Navbar";
-import { Id } from "@/convex/_generated/dataModel";
 import styles from "./BodyScan.module.css";
 
 /* ── Types ── */
@@ -25,7 +23,7 @@ interface BodyAnalysis {
 }
 
 interface PhotoEntry {
-  _id: Id<"bodyPhotos">;
+  id: number;
   date: string;
   imageData?: string;
   analysis?: string;
@@ -80,11 +78,23 @@ function ScoreArc({ score }: { score: number }) {
 /* ── Main Page ── */
 export default function BodyScanPage() {
   const { user } = useAuth();
-  const userId = user?._id ? (user._id as unknown as Id<"users">) : null;
+  const userId = user?.id ? Number(user.id) : null;
 
-  const photos = useQuery(api.bodyPhotos.listPhotos, userId ? { userId } : "skip");
-  const savePhoto = useMutation(api.bodyPhotos.savePhoto);
-  const removePhoto = useMutation(api.bodyPhotos.removePhoto);
+  const [photos, setPhotos] = useState<PhotoEntry[]>([]);
+
+  const fetchPhotos = useCallback(async () => {
+    if (!userId) return;
+    try {
+      const res = await listPhotos(userId);
+      setPhotos(res as PhotoEntry[] || []);
+    } catch (err) {
+      console.error("fetchPhotos error:", err);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    fetchPhotos();
+  }, [fetchPhotos]);
 
   const [analyzing, setAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState<BodyAnalysis | null>(null);
@@ -191,6 +201,7 @@ export default function BodyScanPage() {
         notes: notes || undefined,
       });
       setSaved(true);
+      fetchPhotos();
       setActiveTab("history");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Save failed");
@@ -202,12 +213,13 @@ export default function BodyScanPage() {
   const handleDelete = async (photo: PhotoEntry) => {
     if (!userId) return;
     if (!confirm("Delete this check-in?")) return;
-    await removePhoto({ photoId: photo._id, userId });
-    if (selectedPhoto?._id === photo._id) setSelectedPhoto(null);
+    await removePhoto(photo.id, userId);
+    fetchPhotos();
+    if (selectedPhoto?.id === photo.id) setSelectedPhoto(null);
   };
 
   const openHistory = (photo: PhotoEntry) => {
-    setSelectedPhoto(selectedPhoto?._id === photo._id ? null : photo);
+    setSelectedPhoto(selectedPhoto?.id === photo.id ? null : photo);
   };
 
   const parsedAnalysis = (photo: PhotoEntry): BodyAnalysis | null => {
@@ -450,8 +462,8 @@ export default function BodyScanPage() {
                     const a = parsedAnalysis(photo);
                     return (
                       <div
-                        key={photo._id}
-                        className={`${styles.timelineItem} ${selectedPhoto?._id === photo._id ? styles.timelineItemActive : ""}`}
+                        key={photo.id}
+                        className={`${styles.timelineItem} ${selectedPhoto?.id === photo.id ? styles.timelineItemActive : ""}`}
                         onClick={() => openHistory(photo)}
                         id={`body-history-${i}`}
                       >
@@ -698,7 +710,7 @@ function ProgressTrend({
         {scored.map((p, i) => {
           const pct = ((p.a!.progressScore / maxScore) * 100);
           return (
-            <div key={p._id} className={styles.trendBarWrap}>
+            <div key={p.id} className={styles.trendBarWrap}>
               <div className={styles.trendBarTrack}>
                 <div
                   className={styles.trendBarFill}

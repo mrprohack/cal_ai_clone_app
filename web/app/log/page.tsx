@@ -13,8 +13,9 @@ interface AiMealResult {
 }
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import { useMutation, useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { byDate, log as logMeal, remove as removeMeal, getRecent } from "@/lib/actions/meals";
+import { upsert as upsertProgress } from "@/lib/actions/progress";
+import { search as searchFoods } from "@/lib/actions/foods";
 import { useAuth } from "@/lib/auth-context";
 import { Navbar } from "@/components/Navbar";
 import styles from "./Log.module.css";
@@ -111,7 +112,7 @@ function MacroBar({ label, value, target, color }: { label: string; value: numbe
 }
 
 /** Logged meal row — compact, swipe-friendly */
-function MealRow({ meal, onDelete }: { meal: any; onDelete: (id: string) => void }) {
+function MealRow({ meal, onDelete }: { meal: any; onDelete: (id: number) => void }) {
   const [confirm, setConfirm] = useState(false);
   const meta = MEAL_TYPES.find((m) => m.id === meal.mealType) ?? MEAL_TYPES[0];
   return (
@@ -134,7 +135,7 @@ function MealRow({ meal, onDelete }: { meal: any; onDelete: (id: string) => void
         <span className={styles.mealRowKcal}>kcal</span>
         {confirm ? (
           <div className={styles.mealRowConfirm}>
-            <button className={styles.confirmYes} onClick={() => onDelete(meal._id)} aria-label="Confirm delete">
+            <button className={styles.confirmYes} onClick={() => onDelete(meal.id)} aria-label="Confirm delete">
               <span className="material-symbols-outlined">check</span>
             </button>
             <button className={styles.confirmNo} onClick={() => setConfirm(false)} aria-label="Cancel">
@@ -359,7 +360,7 @@ function QuantityPicker({ food, onConfirm, onCancel, saving }: {
 ═══════════════════════════════════════════════════════════ */
 export default function LogPage() {
   const { user } = useAuth();
-  const userId = user?._id as any;
+  const userId = user?.id ? Number(user.id) : null;
   const today = new Date().toISOString().split("T")[0];
 
   /* ── State ── */
@@ -380,6 +381,52 @@ export default function LogPage() {
   const fileRef                     = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
 
+  /* ── State for data ── */
+  const [meals, setMeals] = useState<any[]>([]);
+  const [displayedFoods, setDisplayedFoods] = useState<DBFood[]>([]);
+  const [recentFoods, setRecentFoods] = useState<any[]>([]);
+
+  const fetchMeals = useCallback(async () => {
+    if (!userId) return;
+    try {
+      const res = await byDate(userId, today);
+      setMeals(res || []);
+    } catch (err) {
+      console.error("fetchMeals error:", err);
+    }
+  }, [userId, today]);
+
+  const fetchFoods = useCallback(async () => {
+    try {
+      const res = await searchFoods(query, foodCat);
+      setDisplayedFoods(res || []);
+    } catch (err) {
+      console.error("fetchFoods error:", err);
+    }
+  }, [query, foodCat]);
+
+  const fetchRecent = useCallback(async () => {
+    if (!userId) return;
+    try {
+      const res = await getRecent(userId);
+      setRecentFoods(res || []);
+    } catch (err) {
+      console.error("fetchRecent error:", err);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    fetchMeals();
+  }, [fetchMeals]);
+
+  useEffect(() => {
+    fetchFoods();
+  }, [fetchFoods]);
+
+  useEffect(() => {
+    fetchRecent();
+  }, [fetchRecent]);
+
   /* Auto-select meal type by time of day */
   useEffect(() => {
     const h = new Date().getHours();
@@ -399,12 +446,6 @@ export default function LogPage() {
     return () => window.removeEventListener("keydown", trap);
   }, [showManual]);
 
-  /* ── Convex ── */
-  const meals          = useQuery(api.meals.byDate, userId ? { userId, date: today } : "skip") ?? [];
-  const logMeal        = useMutation(api.meals.log);
-  const removeMeal     = useMutation(api.meals.remove);
-  const upsertProgress = useMutation(api.progress.upsert);
-
   /* ── Derived ── */
   const todayTotals = (meals as any[]).reduce(
     (acc, m) => ({ cals: acc.cals + (m.calories ?? 0), protein: acc.protein + (m.proteinG ?? 0), carbs: acc.carbs + (m.carbsG ?? 0), fat: acc.fat + (m.fatG ?? 0) }),
@@ -417,11 +458,6 @@ export default function LogPage() {
   const fatGoal      = user?.fatGoal      ?? 65;
   const calPct       = Math.min((todayTotals.cals / calorieGoal) * 100, 100);
   const isOverGoal   = todayTotals.cals > calorieGoal;
-
-  const displayedFoodsResult = useQuery(api.foods.search, { searchQuery: query, category: foodCat });
-  const displayedFoods: DBFood[] = displayedFoodsResult ?? [];
-
-  const recentFoods = useQuery(api.meals.getRecent, userId ? { userId: userId as any } : "skip") ?? [];
 
   const activeMealMeta = MEAL_TYPES.find((m) => m.id === mealType)!;
 
@@ -439,7 +475,6 @@ export default function LogPage() {
       proteinConsumed:  Math.round(todayTotals.protein + dP),
       carbsConsumed:    Math.round(todayTotals.carbs   + dC),
       fatConsumed:      Math.round(todayTotals.fat     + dF),
-      recordedAt: Date.now(),
     });
   }
 
@@ -470,6 +505,8 @@ export default function LogPage() {
         date: today, loggedAt: Date.now(), aiGenerated: false,
       });
       await syncProgress(cals, protein, carbs, fat);
+      fetchMeals();
+      fetchRecent();
       setPendingFood(null);
       showToast(`${food.emoji} ${food.name} logged!`);
     } catch { showToast("Failed to log food", "error"); }
@@ -491,6 +528,8 @@ export default function LogPage() {
     try {
       await logMeal({ userId, name: form.name, mealType, calories: cals, proteinG: protein, carbsG: carbs, fatG: fat, servingSize: form.servingSize || "1 serving", date: today, loggedAt: Date.now(), aiGenerated: false });
       await syncProgress(cals, protein, carbs, fat);
+      fetchMeals();
+      fetchRecent();
       setForm(emptyForm); setShowManual(false);
       showToast(`✓ ${form.name} logged`);
     } catch { showToast("Failed to save", "error"); }
@@ -498,18 +537,18 @@ export default function LogPage() {
   }
 
   /* ── Delete ── */
-  async function handleDelete(id: string) {
-    const meal = (meals as any[]).find((m) => m._id === id);
-    await removeMeal({ id: id as any });
+  async function handleDelete(id: number) {
+    const meal = (meals as any[]).find((m) => m.id === id);
+    await removeMeal(id);
     if (userId && meal) {
       await upsertProgress({ userId, date: today,
         caloriesConsumed: Math.max(0, Math.round(todayTotals.cals    - (meal.calories ?? 0))),
         proteinConsumed:  Math.max(0, Math.round(todayTotals.protein  - (meal.proteinG ?? 0))),
         carbsConsumed:    Math.max(0, Math.round(todayTotals.carbs    - (meal.carbsG   ?? 0))),
         fatConsumed:      Math.max(0, Math.round(todayTotals.fat      - (meal.fatG     ?? 0))),
-        recordedAt: Date.now(),
       });
     }
+    fetchMeals();
     showToast("Meal removed");
   }
 
@@ -595,6 +634,8 @@ export default function LogPage() {
         aiGenerated: true,
       });
       await syncProgress(cals, pro, carb, fat);
+      fetchMeals();
+      fetchRecent();
       setPreview(null);
       setAiResult(null);
       setScanState("idle");

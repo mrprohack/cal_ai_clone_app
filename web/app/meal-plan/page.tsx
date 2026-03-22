@@ -1,11 +1,9 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { useState, useCallback, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { listPlans as listSavedPlans, savePlan, togglePin, removePlan } from "@/lib/actions/mealPlans";
 import { Navbar } from "@/components/Navbar";
-import { Id } from "@/convex/_generated/dataModel";
 import styles from "./MealPlan.module.css";
 
 /* ── Types ── */
@@ -54,7 +52,7 @@ interface MealPlan {
 }
 
 interface SavedPlan {
-  _id: Id<"mealPlans">;
+  id: number;
   planName: string;
   createdDate: string;
   calorieTarget: number;
@@ -135,12 +133,23 @@ function MacroRing({
 /* ── Main Page ── */
 export default function MealPlanPage() {
   const { user } = useAuth();
-  const userId = user?._id ? (user._id as unknown as Id<"users">) : null;
+  const userId = user?.id ? Number(user.id) : null;
 
-  const savedPlans = useQuery(api.mealPlans.listPlans, userId ? { userId } : "skip");
-  const savePlan = useMutation(api.mealPlans.savePlan);
-  const togglePin = useMutation(api.mealPlans.togglePin);
-  const removePlan = useMutation(api.mealPlans.removePlan);
+  const [savedPlans, setSavedPlans] = useState<SavedPlan[]>([]);
+
+  const fetchPlans = useCallback(async () => {
+    if (!userId) return;
+    try {
+      const res = await listSavedPlans(userId);
+      setSavedPlans(res as SavedPlan[] || []);
+    } catch (err) {
+      console.error("fetchPlans error:", err);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    fetchPlans();
+  }, [fetchPlans]);
 
   const [generating, setGenerating] = useState(false);
   const [plan, setPlan] = useState<MealPlan | null>(null);
@@ -205,13 +214,9 @@ export default function MealPlanPage() {
     if (!userId || !plan) return;
     setSaving(true);
     try {
-      await savePlan({
-        userId,
-        planJson: JSON.stringify(plan),
-        planName: plan.planName,
-        calorieTarget: plan.dailyCalorieTarget,
-      });
+      await savePlan({ userId, planJson: JSON.stringify(plan), planName: plan.planName, calorieTarget: plan.dailyCalorieTarget });
       setSaved(true);
+      fetchPlans();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Save failed");
     } finally {
@@ -235,13 +240,15 @@ export default function MealPlanPage() {
   const handleDeletePlan = async (p: SavedPlan) => {
     if (!userId) return;
     if (!confirm("Delete this plan?")) return;
-    await removePlan({ planId: p._id, userId });
-    if (selectedSavedPlan?._id === p._id) setSelectedSavedPlan(null);
+    await removePlan(p.id, userId);
+    fetchPlans();
+    if (selectedSavedPlan?.id === p.id) setSelectedSavedPlan(null);
   };
 
   const handleTogglePin = async (p: SavedPlan) => {
     if (!userId) return;
-    await togglePin({ planId: p._id, userId });
+    await togglePin(p.id, userId);
+    fetchPlans();
   };
 
   if (!user) {
@@ -729,7 +736,7 @@ function SavedPlansView({
       ) : (
         <div className={styles.savedPlansList}>
           {sorted.map((p) => (
-            <div key={p._id} className={`${styles.savedPlanCard} ${p.isPinned ? styles.savedPlanCardPinned : ""}`}>
+            <div key={p.id} className={`${styles.savedPlanCard} ${p.isPinned ? styles.savedPlanCardPinned : ""}`}>
               {p.isPinned && <div className={styles.pinnedBadge}>📌 Pinned</div>}
               <div className={styles.savedPlanInfo}>
                 <h3 className={styles.savedPlanName}>{p.planName}</h3>
@@ -757,7 +764,7 @@ function SavedPlansView({
                 <button
                   className={styles.loadPlanBtn}
                   onClick={() => onLoad(p)}
-                  id={`meal-load-${p._id}`}
+                  id={`meal-load-${p.id}`}
                 >
                   <span className="material-symbols-outlined">open_in_new</span>
                   Load Plan

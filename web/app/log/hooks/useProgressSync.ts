@@ -1,5 +1,4 @@
-import { useMutation } from "convex/react"
-import { api } from "@/convex/_generated/api"
+import { upsert as upsertProgress } from "@/lib/actions/progress"
 import { useAuth } from "@/lib/auth-context"
 import type { DailyTotals } from "../types"
 
@@ -9,8 +8,7 @@ import type { DailyTotals } from "../types"
  */
 export function useProgressSync(date: string, todayTotals: DailyTotals) {
   const { user } = useAuth()
-  const userId = user?._id as any
-  const upsertProgress = useMutation(api.progress.upsert)
+  const userId = user?.id ? Number(user.id) : null
 
   const syncProgress = async (delta?: Partial<DailyTotals>) => {
     if (!userId) return

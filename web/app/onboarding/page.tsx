@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { completeOnboarding } from "@/lib/actions/users";
 import styles from "./Onboarding.module.css";
 
 const STEPS = 4;
@@ -12,8 +11,6 @@ const STEPS = 4;
 export default function OnboardingPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const completeOnboarding = useMutation(api.users.completeOnboarding);
-
   const [step, setStep] = useState(1);
 
   // Form state
@@ -37,8 +34,7 @@ export default function OnboardingPage() {
   async function handleFinish() {
     setSubmitting(true);
     try {
-      await completeOnboarding({
-        userId: user!._id as any,
+      await completeOnboarding(Number(user!.id), {
         gender,
         ageYears: parseInt(ageYears, 10) || 30,
         heightCm: parseInt(heightCm, 10) || 175,

@@ -19,7 +19,7 @@
 ## TL;DR
 - **Type:** SaaS product
 - **Focus:** `web/` directory only (Next.js 14 app)
-- **DB/Backend:** `web/convex/` — Convex real-time database
+- **DB/Backend:** MySQL & Server Actions (`web/lib/actions/`)
 - **AI:** Groq Llama 4 Vision via `/api/analyze-meal`
 - **Auth:** Custom session tokens (localStorage) — no Clerk
 - **Styles:** Vanilla CSS Modules — no Tailwind
@@ -42,20 +42,19 @@
 | `/profile` | `app/profile/page.tsx` | Goals, account, premium |
 | `/chat` | `app/chat/page.tsx` | FitBot AI coach |
 
-## DB Tables (web/convex/schema.ts)
-`users` · `sessions` · `meals` · `progress` · `foods`
+## DB Tables (MySQL via lib/db.ts)
+`users` · `sessions` · `meals` · `progress` · `foods` · `bodyPhotos` · `mealPlans`
 
-## Key Convex Modules
+## Key Server Actions (lib/actions/)
 | File | Exports |
 |------|---------|
-| `convex/auth.ts` | signUp, signIn, signOut, getSessionUser |
-| `convex/users.ts` | getById, updateProfile, updatePlan, getUserPlan |
-| `convex/meals.ts` | log, byDate, remove, getTodayMeals, getRecent |
-| `convex/progress.ts` | progress CRUD, logWater, getDailyProgress, getStats |
-| `convex/foods.ts` | list, search |
-| `convex/seedFoods.ts` | run, clearAndSeed |
-| `convex/bodyPhotos.ts` | savePhoto, listPhotos, getWeeklyPhotos, removePhoto |
-| `convex/mealPlans.ts` | savePlan, listPlans, getLatestPlan, togglePin, removePlan |
+| `auth.ts` | signUp, signIn, signOut, getSessionUser |
+| `users.ts` | getById, updateProfile, updatePlan, getUserPlan |
+| `meals.ts` | log, byDate, remove, getTodayMeals, getRecent |
+| `progress.ts` | logWater, getDailyProgress, getStats, upsert, range |
+| `foods.ts` | list, search |
+| `bodyPhotos.ts` | savePhoto, listPhotos, getWeeklyPhotos, removePhoto |
+| `mealPlans.ts` | savePlan, listPlans, getLatestPlan, togglePin, removePlan |
 
 ## Plans
 `free` (default) · `pro` ($9/mo) · `ultra` ($19/mo)  

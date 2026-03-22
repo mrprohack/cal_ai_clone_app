@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { getStats, getCalorieTrend, getMacroTotals, getAchievements, getWeightHistory, logWeight } from "@/lib/actions/progress";
 import { useAuth } from "@/lib/auth-context";
 import { Navbar } from "@/components/Navbar";
 import styles from "./Progress.module.css";
@@ -68,35 +67,44 @@ export default function ProgressPage() {
   const fromDate = getFromDate(days);
 
   // All backend queries are skipped until we have a userId
-  const userId = user?._id as any;
-  const skip = !userId ? "skip" : undefined;
+  const userId = user?.id ? Number(user.id) : null;
 
-  const stats = useQuery(
-    api.progress.getStats,
-    skip ?? { userId, fromDate, toDate: today }
-  );
+  const [stats, setStats] = useState<any>(null);
+  const [trendRaw, setTrendRaw] = useState<any[]>([]);
+  const [macros, setMacros] = useState<any>(null);
+  const [achievements, setAchievements] = useState<any[]>([]);
+  const [weightHistory, setWeightHistory] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const trendRaw = useQuery(
-    api.progress.getCalorieTrend,
-    skip ?? { userId, fromDate, toDate: today }
-  );
+  const fetchData = useCallback(async () => {
+    if (!userId) {
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const [statsRes, trendRes, macrosRes, achieveRes, weightRes] = await Promise.all([
+        getStats(userId, fromDate, today),
+        getCalorieTrend(userId, fromDate, today),
+        getMacroTotals(userId, fromDate, today),
+        getAchievements(userId),
+        getWeightHistory(userId, getFromDate(90), today)
+      ]);
+      setStats(statsRes);
+      setTrendRaw(trendRes || []);
+      setMacros(macrosRes);
+      setAchievements(achieveRes || []);
+      setWeightHistory(weightRes || []);
+    } catch (err) {
+      console.error("fetchData error:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [userId, fromDate, today]);
 
-  const macros = useQuery(
-    api.progress.getMacroTotals,
-    skip ?? { userId, fromDate, toDate: today }
-  );
-
-  const achievements = useQuery(
-    api.progress.getAchievements,
-    skip ?? { userId }
-  );
-
-  const weightHistory = useQuery(
-    api.progress.getWeightHistory,
-    skip ?? { userId, fromDate: getFromDate(90), toDate: today }
-  );
-
-  const logWeight = useMutation(api.progress.logWeight);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   // ── Derived chart values ──
   const trend = trendRaw ?? [];
@@ -146,8 +154,6 @@ export default function ProgressPage() {
       color: "var(--accent-purple)",
     },
   ];
-
-  const isLoading = !user || stats === undefined || trendRaw === undefined || macros === undefined;
 
   return (
     <div className={styles.page}>
@@ -334,8 +340,9 @@ export default function ProgressPage() {
                 <button
                   onClick={async () => {
                     if (!weightInput || isNaN(Number(weightInput)) || !userId) return;
-                    await logWeight({ userId, date: today, weightKg: Number(weightInput) });
+                    await logWeight(userId, today, Number(weightInput));
                     setWeightInput("");
+                    fetchData();
                   }}
                   className={styles.weightBtn}
                   disabled={!weightInput || isNaN(Number(weightInput))}
@@ -529,9 +536,10 @@ export default function ProgressPage() {
               <button
                 onClick={async () => {
                   if (!weightInput || isNaN(Number(weightInput)) || !userId) return;
-                  await logWeight({ userId, date: today, weightKg: Number(weightInput) });
+                  await logWeight(userId, today, Number(weightInput));
                   setWeightInput("");
                   setShowWeightModal(false);
+                  fetchData();
                 }}
                 className={styles.weightBtn}
                 disabled={!weightInput || isNaN(Number(weightInput))}

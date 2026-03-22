@@ -13,26 +13,9 @@ import React, {
   useCallback,
   ReactNode,
 } from "react";
-import { useAction, useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { getSessionUser, signUp as doSignUp, signIn as doSignIn, signOut as doSignOut, AuthUser } from "@/lib/actions/auth";
 
 /* ── Types ── */
-interface AuthUser {
-  _id: string;
-  name: string;
-  email: string;
-  calorieGoal: number;
-  proteinGoal: number;
-  carbsGoal: number;
-  fatGoal: number;
-  avatarUrl?: string;
-  weightKg?: number;
-  heightCm?: number;
-  ageYears?: number;
-  gender?: string;
-  onboarded?: boolean;
-}
-
 interface AuthState {
   user: AuthUser | null;
   token: string | null;
@@ -55,7 +38,9 @@ const TOKEN_KEY = "calai_session";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // Load token from localStorage on mount
   useEffect(() => {
@@ -64,18 +49,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setHydrated(true);
   }, []);
 
-  // Reactive query — returns null until hydrated or if no token
-  const sessionUser = useQuery(
-    api.auth.getSessionUser,
-    hydrated && token ? { token } : "skip"
-  );
+  // Fetch session user reactively when token or hydration state changes
+  useEffect(() => {
+    if (!hydrated) return;
 
-  const loading = !hydrated || (token !== null && sessionUser === undefined);
+    if (!token) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
 
-  /* actions */
-  const doSignUp = useAction(api.auth.signUp);
-  const doSignIn = useAction(api.auth.signIn);
-  const doSignOut = useAction(api.auth.signOut);
+    setLoading(true);
+    getSessionUser(token).then((res) => {
+      setUser(res);
+      setLoading(false);
+    }).catch(() => {
+      setUser(null);
+      setLoading(false);
+    });
+  }, [hydrated, token]);
 
   const signUp = useCallback(
     async (name: string, email: string, password: string) => {
@@ -83,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem(TOKEN_KEY, t);
       setToken(t);
     },
-    [doSignUp]
+    []
   );
 
   const signIn = useCallback(
@@ -92,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem(TOKEN_KEY, t);
       setToken(t);
     },
-    [doSignIn]
+    []
   );
 
   const signOut = useCallback(async () => {
@@ -101,12 +93,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     localStorage.removeItem(TOKEN_KEY);
     setToken(null);
-  }, [doSignOut, token]);
-
-  const user = sessionUser ?? null;
+    setUser(null);
+  }, [token]);
 
   return (
-    <AuthContext.Provider value={{ user: user as AuthUser | null, token, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user: user, token, loading, signUp, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,11 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { useMutation, useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { updatePlan as doUpdatePlan, getUserPlan } from "@/lib/actions/users";
 import { Navbar } from "@/components/Navbar";
-import { Id } from "@/convex/_generated/dataModel";
 import styles from "./Plans.module.css";
 
 /* ══════════════════════════════════════════════
@@ -84,13 +82,23 @@ const PLANS = [
 ══════════════════════════════════════════════ */
 export default function PlansPage() {
   const { user }    = useAuth();
-  const userId      = user?._id ? (user._id as unknown as Id<"users">) : null;
+  const userId      = user?.id ? Number(user.id) : null;
 
-  const planInfo    = useQuery(
-    api.users.getUserPlan,
-    userId ? { userId } : "skip"
-  );
-  const doUpdatePlan = useMutation(api.users.updatePlan);
+  const [planInfo, setPlanInfo] = useState<any>(null);
+
+  const fetchPlan = useCallback(async () => {
+    if (!userId) return;
+    try {
+      const res = await getUserPlan(userId);
+      setPlanInfo(res);
+    } catch (err) {
+      console.error("fetchPlan error:", err);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    fetchPlan();
+  }, [fetchPlan]);
 
   const currentPlan: PlanId = (planInfo?.plan as PlanId) ?? "free";
 
@@ -102,8 +110,9 @@ export default function PlansPage() {
     if (!userId || planId === currentPlan) return;
     setLoading(planId);
     try {
-      await doUpdatePlan({ userId, plan: planId });
+      await doUpdatePlan(userId, planId);
       setSuccess(planId);
+      fetchPlan();
       setTimeout(() => setSuccess(null), 3500);
     } catch (err) {
       console.error(err);

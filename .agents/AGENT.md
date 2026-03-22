@@ -49,7 +49,7 @@ If you add a new Convex module or function, update the **Key Convex Modules** ta
 
 **Name:** Cal AI  
 **Type:** AI-powered nutrition & calorie tracking SaaS product  
-**Stack:** Next.js 14 · Convex (backend/DB) · Groq Llama 4 Vision (AI) · Vanilla CSS Modules  
+**Stack:** Next.js 14 · MySQL (via `mysql2`) · Groq Llama 4 Vision (AI) · Vanilla CSS Modules  
 **Root directory (web):** `/home/mrpro/mygit/cal_ai_clone/web/`  
 **Dev server:** `http://localhost:3004`  
 **Start command:** `cd web && npm run dev`
@@ -70,7 +70,7 @@ If you add a new Convex module or function, update the **Key Convex Modules** ta
 |---------|---------|---------|
 | `next` | 14.2.5 | App router framework |
 | `react` / `react-dom` | ^18.3.1 | UI library |
-| `convex` | ^1.12.0 | Real-time database + backend functions |
+| `mysql2` | ^3.9 || MySQL database client |
 | `groq-sdk` | ^1.1.1 | AI meal analysis (Llama 4 Scout Vision) |
 | `openai` | ^4.47.0 | Fallback / FitBot chat |
 | `typescript` | ^5 | Static typing |
@@ -165,7 +165,17 @@ web/
 │   └── _generated/                 # AUTO-GENERATED — never edit manually
 │
 └── lib/
-    └── auth-context.tsx            # useAuth() hook — session token in localStorage
+    ├── auth-context.tsx            # useAuth() hook — session token in localStorage
+    ├── db.ts                       # MySQL connection pool
+    └── actions/                    # SERVER ACTIONS (MySQL queries)
+        ├── auth.ts                 # signUp, signIn, signOut
+        ├── users.ts                # updateProfile, updatePlan
+        ├── meals.ts                # log, byDate, range
+        ├── progress.ts             # logWater, getDailyProgress, stats
+        ├── foods.ts                # search, list
+        ├── bodyPhotos.ts           # savePhoto, listPhotos
+        ├── mealPlans.ts            # savePlan, listPlans
+        └── daily.ts                # daily summary
 ```
 
 ---
@@ -278,64 +288,50 @@ Indexes: `by_user`, `by_user_date`
 
 ---
 
-## 6. CONVEX BACKEND FUNCTIONS
+## 6. BACKEND SERVER ACTIONS (web/lib/actions/)
 
-### Auth (`convex/auth.ts`)
+### Auth (`actions/auth.ts`)
 | Function | Type | Description |
 |----------|------|-------------|
-| `auth.getSessionUser` | query | Get current user from session token |
-| `auth.signUp` | action | Create user + session, returns `{ token }` |
-| `auth.signIn` | action | Verify password + create session, returns `{ token }` |
-| `auth.signOut` | action | Delete session |
+| `getSessionUser` | query | Get current user from session token |
+| `signUp` | action | Create user + session, returns `{ token }` |
+| `signIn` | action | Verify password + create session, returns `{ token }` |
+| `signOut` | action | Delete session |
 
-### Users (`convex/users.ts`)
+### Users (`actions/users.ts`)
 | Function | Type | Description |
 |----------|------|-------------|
-| `users.getMe` | query | Returns null (stub — session auth via `auth.getSessionUser`) |
-| `users.getById` | query | Get user by ID (no passwordHash) |
-| `users.updateProfile` | mutation | Patch profile fields |
-| `users.updatePlan` | mutation | Set plan: "free"/"pro"/"ultra" |
-| `users.getUserPlan` | query | Get `{ plan, planActivatedAt, planExpiresAt }` |
+| `getById` | query | Get user by ID (no passwordHash) |
+| `updateProfile` | mutation | Patch profile fields |
+| `updatePlan` | mutation | Set plan: "free"/"pro"/"ultra" |
+| `getUserPlan` | query | Get `{ plan, planActivatedAt, planExpiresAt }` |
 
-### Meals (`convex/meals.ts`)
+### Meals (`actions/meals.ts`)
 | Function | Type | Description |
 |----------|------|-------------|
-| `meals.log` | mutation | Insert a meal entry |
-| `meals.byDate` | query | Get meals for userId + date |
-| `meals.remove` | mutation | Delete a meal by ID |
-| `meals.getTodayMeals` | query | Get all meals for a date (all users) |
-| `meals.getRecent` | query | Get a user's recently logged unique meals |
+| `log` | mutation | Insert a meal entry |
+| `byDate` | query | Get meals for userId + date |
+| `remove` | mutation | Delete a meal by ID |
+| `getRecent` | query | Get a user's recently logged unique meals |
 
-### Progress (`convex/progress.ts`)
+### Progress (`actions/progress.ts`)
 | Function | Type | Description |
 |----------|------|-------------|
-| `progress.logWater` | mutation | Add water intake for a given date |
-| `progress.getDailyProgress` | query | Get progress snapshot for a specific date |
-| `progress.getStats` | query | Get aggregated stats and current streak |
-| See progress.ts | — | Progress snapshot CRUD |
+| `logWater` | mutation | Add water intake for a given date |
+| `getDailyProgress` | query | Get progress snapshot for a date |
+| `getStats` | query | Aggregated stats, calorie trend & streak |
 
-### Foods (`convex/foods.ts`)
+### Body Photos (`actions/bodyPhotos.ts`)
 | Function | Type | Description |
 |----------|------|-------------|
-| `foods.list` | query | Get a predefined list of food items |
-| `foods.search` | query | Search foods by string query or filter by category |
+| `savePhoto` | mutation | Save or update a body check-in with AI analysis |
+| `listPhotos` | query | List all photos newest-first |
 
-### Body Photos (`convex/bodyPhotos.ts`)
+### Meal Plans (`actions/mealPlans.ts`)
 | Function | Type | Description |
 |----------|------|-------------|
-| `bodyPhotos.savePhoto` | mutation | Save or update a body check-in with AI analysis |
-| `bodyPhotos.listPhotos` | query | List all photos newest-first |
-| `bodyPhotos.getWeeklyPhotos` | query | Get last N weeks of photos |
-| `bodyPhotos.removePhoto` | mutation | Delete a photo entry |
-
-### Meal Plans (`convex/mealPlans.ts`)
-| Function | Type | Description |
-|----------|------|-------------|
-| `mealPlans.savePlan` | mutation | Save a generated 7-day plan |
-| `mealPlans.listPlans` | query | List all plans for user |
-| `mealPlans.getLatestPlan` | query | Get most recent plan |
-| `mealPlans.togglePin` | mutation | Toggle pinned status |
-| `mealPlans.removePlan` | mutation | Delete a plan |
+| `savePlan` | mutation | Save a generated 7-day plan |
+| `listPlans` | query | List all plans for user |
 
 ---
 
@@ -518,8 +514,11 @@ User taps "Scan Meal" on /log
 
 | Variable | Used in | Purpose |
 |----------|---------|---------|
-| `GROQ_API_KEY` | `app/api/analyze-meal/route.ts`, `app/api/chat/route.ts` | Groq AI API key |
-| `NEXT_PUBLIC_CONVEX_URL` | `app/ConvexClientProvider.tsx` | Convex deployment URL |
+| `GROQ_API_KEY` | Server Actions / API | Groq AI API key |
+| `DB_HOST` | `lib/db.ts` | MySQL Host |
+| `DB_USER` | `lib/db.ts` | MySQL User |
+| `DB_PASSWORD` | `lib/db.ts` | MySQL Password |
+| `DB_DATABASE` | `lib/db.ts` | MySQL Database |
 
 ---
 
@@ -635,4 +634,4 @@ web/
 └── lib/
     └── auth-context.tsx            # useAuth() hook — session token in localStorage
 ```
-> **Last audited:** 2026-03-21 · Implemented comprehensive UX improvements across Dashboard, Log, Progress, Profile, and Chat pages; updated Navbar to be mobile-responsive.
+> **Last audited:** 2026-03-21 · Migrated entire application from Convex to MySQL incorporating custom Server Actions framework for all data queries and mutations.
