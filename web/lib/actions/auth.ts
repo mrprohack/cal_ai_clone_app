@@ -136,7 +136,7 @@ export async function signUp({ name, email, password }: any): Promise<{ token?: 
 }
 
 /** Sign in a user */
-export async function signIn({ email, password }: any): Promise<{ token: string; userId: number }> {
+export async function signIn({ email, password }: any): Promise<{ token?: string; userId?: number; error?: string }> {
   try {
     const cleanEmail = email.toLowerCase().trim();
 
@@ -145,11 +145,11 @@ export async function signIn({ email, password }: any): Promise<{ token: string;
       [cleanEmail]
     );
 
-    if (users.length === 0) throw new Error("Invalid email or password.");
+    if (users.length === 0) return { error: "Invalid email or password." };
     const user = users[0];
 
     const ok = await verifyPassword(password, user.passwordHash);
-    if (!ok) throw new Error("Invalid email or password.");
+    if (!ok) return { error: "Invalid email or password." };
 
     const token = generateToken();
     const expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000;
@@ -162,7 +162,7 @@ export async function signIn({ email, password }: any): Promise<{ token: string;
     return { token, userId: user.id };
   } catch (err) {
     console.error("❌ Auth.ts Error inside signIn:", err);
-    throw err instanceof Error ? err : new Error("Database connection failed");
+    return { error: err instanceof Error ? err.message : "Database connection failed" };
   }
 }
 
