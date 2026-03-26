@@ -71,7 +71,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = useCallback(
     async (name: string, email: string, password: string) => {
-      const { token: t } = await doSignUp({ name, email, password });
+      let res: any;
+      try {
+        res = await doSignUp({ name, email, password });
+      } catch (err) {
+        throw err instanceof Error ? err : new Error("Sign up failed");
+      }
+      if (!res) throw new Error("Sign up failed — no response from server");
+      if (res.error) throw new Error(res.error);
+      const t = res.token!;
       localStorage.setItem(TOKEN_KEY, t);
       setToken(t);
     },
@@ -80,7 +88,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(
     async (email: string, password: string) => {
-      const { token: t } = await doSignIn({ email, password });
+      let res: any;
+      try {
+        res = await doSignIn({ email, password });
+      } catch (err) {
+        throw err instanceof Error ? err : new Error("Sign in failed");
+      }
+      if (!res) throw new Error("Sign in failed — no response from server");
+      if (res.error) throw new Error(res.error);
+      const t = res.token!;
       localStorage.setItem(TOKEN_KEY, t);
       setToken(t);
     },

@@ -1,0 +1,10 @@
+RewriteEngine On
+RewriteBase /
+
+# 1. Forcefully intercept any Static Assets and route to Next.js Proxy
+RewriteRule ^_next/(.*)$ index.php [QSA,L]
+
+# 2. Standard Fallback for missing dynamic routes (Dashboard, etc)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php [QSA,L]

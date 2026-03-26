@@ -85,10 +85,13 @@ export async function getSessionUser(token: string): Promise<AuthUser | null> {
 }
 
 /** Sign up a new user */
-export async function signUp({ name, email, password }: any): Promise<{ token: string; userId: number }> {
-  if (password.length < 8) throw new Error("Password must be at least 8 characters");
+export async function signUp({ name, email, password }: any): Promise<{ token?: string; userId?: number; error?: string }> {
+  if (password.length < 8) return { error: "Password must be at least 8 characters" };
   const passwordHash = await hashPassword(password);
   const cleanEmail = email.toLowerCase().trim();
+  
+  // Basic validation
+  if (!name.trim() || !cleanEmail) return { error: "All fields are required" };
 
   const connection = await pool.getConnection();
   try {
@@ -101,7 +104,7 @@ export async function signUp({ name, email, password }: any): Promise<{ token: s
     );
 
     if (existing.length > 0) {
-      throw new Error("An account with this email already exists.");
+      return { error: "An account with this email already exists." };
     }
 
     // Insert user
@@ -125,7 +128,8 @@ export async function signUp({ name, email, password }: any): Promise<{ token: s
     return { token, userId };
   } catch (err) {
     await connection.rollback();
-    throw err;
+    console.error("❌ Auth.ts Error inside signUp:", err);
+    return { error: err instanceof Error ? err.message : "Database connection failed" };
   } finally {
     connection.release();
   }
@@ -133,28 +137,33 @@ export async function signUp({ name, email, password }: any): Promise<{ token: s
 
 /** Sign in a user */
 export async function signIn({ email, password }: any): Promise<{ token: string; userId: number }> {
-  const cleanEmail = email.toLowerCase().trim();
+  try {
+    const cleanEmail = email.toLowerCase().trim();
 
-  const [users] = await pool.query<RowDataPacket[]>(
-    "SELECT id, passwordHash FROM users WHERE email = ?",
-    [cleanEmail]
-  );
+    const [users] = await pool.query<RowDataPacket[]>(
+      "SELECT id, passwordHash FROM users WHERE email = ?",
+      [cleanEmail]
+    );
 
-  if (users.length === 0) throw new Error("Invalid email or password.");
-  const user = users[0];
+    if (users.length === 0) throw new Error("Invalid email or password.");
+    const user = users[0];
 
-  const ok = await verifyPassword(password, user.passwordHash);
-  if (!ok) throw new Error("Invalid email or password.");
+    const ok = await verifyPassword(password, user.passwordHash);
+    if (!ok) throw new Error("Invalid email or password.");
 
-  const token = generateToken();
-  const expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000;
+    const token = generateToken();
+    const expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000;
 
-  await pool.query(
-    "INSERT INTO sessions (userId, token, expiresAt, createdAt) VALUES (?, ?, ?, ?)",
-    [user.id, token, expiresAt, Date.now()]
-  );
+    await pool.query(
+      "INSERT INTO sessions (userId, token, expiresAt, createdAt) VALUES (?, ?, ?, ?)",
+      [user.id, token, expiresAt, Date.now()]
+    );
 
-  return { token, userId: user.id };
+    return { token, userId: user.id };
+  } catch (err) {
+    console.error("❌ Auth.ts Error inside signIn:", err);
+    throw err instanceof Error ? err : new Error("Database connection failed");
+  }
 }
 
 /** Sign out a user */

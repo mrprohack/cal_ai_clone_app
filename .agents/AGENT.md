@@ -524,8 +524,9 @@ User taps "Scan Meal" on /log
 
 ## 16. RUNNING THE PROJECT
 
+### Local Development
 ```bash
-# Start web dev server (already running on port 3004)
+# Start web dev server (runs on port 3004)
 cd web && npm run dev
 
 # Type-check
@@ -536,6 +537,24 @@ cd web && npx convex dev
 
 # Build for production
 cd web && npm run build
+```
+
+### Production (via SSH)
+```bash
+# SSH into production server
+ssh host
+
+# Start / restart the Next.js production server
+cd /home/u697986122/domains/lightgreen-spider-622425.hostingersite.com
+pm2 restart cal-ai-web
+# — or start fresh —
+pm2 start npm --name cal-ai-web -- start
+
+# Check logs
+pm2 logs cal-ai-web --lines 50
+
+# Check status
+pm2 status
 ```
 
 ### 🔑 Test Credentials
@@ -639,4 +658,103 @@ web/
 └── lib/
     └── auth-context.tsx            # useAuth() hook — session token in localStorage
 ```
-> **Last audited:** 2026-03-22 · Improved UX and UI styling across onboarding steps for responsiveness and streamlined layouts.
+
+---
+
+## 19. SSH & DEPLOYMENT (Production Server)
+
+### SSH Config (local `~/.ssh/config`)
+
+| Alias | HostName | User | Port | IdentityFile |
+|-------|----------|------|------|--------------|
+| `host` | `147.93.99.163` | `u697986122` | `65002` | `~/.ssh/id_ed25519` |
+| `test` | `192.168.1.4` | `mrpro` | `22` | `~/.ssh/id_ed25519` |
+
+**Quick connect:** `ssh host`
+
+### Production URLs
+
+| Purpose | URL |
+|---------|-----|
+| Live site | `https://lightgreen-spider-622425.hostingersite.com` |
+| Hostinger panel | Hostinger hPanel |
+
+### Server Paths
+
+| Path | Purpose |
+|------|---------|
+| `/home/u697986122/domains/lightgreen-spider-622425.hostingersite.com/` | Project root (Next.js app) |
+| `…/public_html/` | Apache document root |
+| `…/public_html/.htaccess` | URL rewrite rules → `index.php` |
+| `…/public_html/index.php` | PHP reverse proxy → `http://127.0.0.1:3000` |
+| `…/.env` | Production environment variables |
+| `…/.next/` | Next.js production build output |
+| `…/node_modules/` | Dependencies |
+
+### How the Production Stack Works
+
+```
+Browser → Hostinger Apache (port 443)
+       → .htaccess rewrites all routes to index.php
+       → index.php (PHP cURL reverse proxy)
+       → http://127.0.0.1:3000 (Next.js via pm2)
+```
+
+1. **Apache** serves `public_html/` and applies `.htaccess` rewrite rules.
+2. **`.htaccess`** catches all requests (static `_next/*` assets and dynamic routes) and routes them to `index.php`.
+3. **`index.php`** is a PHP cURL reverse proxy that forwards requests to `http://127.0.0.1:3000`.
+4. **pm2** keeps the Next.js production server (`npm start`) alive on port 3000.
+
+### Process Management (pm2)
+
+| Command | Purpose |
+|---------|---------|
+| `pm2 start npm --name cal-ai-web -- start` | Start Next.js in production |
+| `pm2 restart cal-ai-web` | Restart after deploy |
+| `pm2 stop cal-ai-web` | Stop the server |
+| `pm2 logs cal-ai-web --lines 50` | View recent logs |
+| `pm2 status` | Check running processes |
+| `pm2 save` | Persist process list across reboots |
+
+### Production Environment Variables (`…/.env`)
+
+| Variable | Value | Purpose |
+|----------|-------|---------|
+| `DB_CONNECTION` | `mysql` | DB driver |
+| `DB_HOST` | `auth-db1873.hstgr.io` | Hostinger MySQL host |
+| `DB_PORT` | `3306` | MySQL port |
+| `DB_DATABASE` | `u697986122_calai` | Database name |
+| `DB_USERNAME` | `u697986122_calai` | DB user |
+| `DB_PASSWORD` | *(set in .env)* | DB password |
+| `GROQ_API_KEY` | *(set in .env)* | Groq AI API key |
+
+### Deployment Workflow
+
+```bash
+# 1. Build locally
+cd web && npm run build
+
+# 2. Transfer build to server
+tar -czf deploy.tar.gz .next/ package.json package-lock.json next.config.js lib/ public/
+scp deploy.tar.gz host:/home/u697986122/domains/lightgreen-spider-622425.hostingersite.com/
+
+# 3. SSH in and unpack
+ssh host
+cd /home/u697986122/domains/lightgreen-spider-622425.hostingersite.com/
+tar -xzf deploy.tar.gz
+npm install --production
+
+# 4. Restart the server
+pm2 restart cal-ai-web
+```
+
+### Common Issues
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `⚠️ Proxy Error: Failed to connect to 127.0.0.1 port 3000` | Next.js not running | `ssh host` → `cd …` → `pm2 start npm --name cal-ai-web -- start` |
+| pm2 process shows `errored` | Build issue or missing deps | Check `pm2 logs`, run `npm install`, rebuild |
+| Site loads but pages 404 | Missing `.next/` build | Rebuild and redeploy |
+| CSS/JS not loading | `_next/` assets not proxied | Verify `.htaccess` has the `_next` rewrite rule |
+
+> **Last audited:** 2026-03-26 · Added SSH & deployment section with production server details, pm2 management, and troubleshooting guide.
