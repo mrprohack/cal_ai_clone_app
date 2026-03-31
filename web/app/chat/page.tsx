@@ -6,6 +6,7 @@ import { getStats } from "@/lib/actions/progress";
 import { byDate as getTodayMeals, range as getMealsRange } from "@/lib/actions/meals";
 import { Navbar } from "@/components/Navbar";
 import styles from "./Chat.module.css";
+import { AuthGuard } from "@/components/AuthGuard";
 
 /* ── Types ── */
 type Role = "bot" | "user";
@@ -113,7 +114,7 @@ export default function ChatPage() {
     // Build hidden context prompt
     const contextPrompt = user ? `
       - Daily calorie goal: ${user.calorieGoal || 2000} kcal | consumed today: ${Math.round(todayTotals.c)} kcal
-      - Protein goal: ${user.proteinGoal || 150}g | consumed today: ${Math.round(todayTotals.p)}g
+      - Protein goal: ${user.proteinGoal || 151}g | consumed today: ${Math.round(todayTotals.p)}g
       - Carbs goal: ${user.carbsGoal || 225}g | consumed today: ${Math.round(todayTotals.cb)}g
       - Fat goal: ${user.fatGoal || 65}g | consumed today: ${Math.round(todayTotals.f)}g
       - Current Weight: ${user.weightKg ? user.weightKg + "kg" : "Not Provided"}
@@ -196,146 +197,148 @@ export default function ChatPage() {
   }
 
   return (
-    <div className={styles.page}>
-      <Navbar />
-      <div className={styles.layout}>
-        {/* Side panel */}
-        <aside className={styles.sidebar}>
-          <div className={styles.sideHeader}>
-            <div className={styles.botAvatar}>
-              <span className="material-symbols-outlined">smart_toy</span>
-              <span className={styles.onlineDot} />
-            </div>
-            <div>
-              <div className={styles.botName}>FitBot</div>
-              <div className={styles.botTagline}>Your AI Nutrition Coach</div>
-            </div>
-          </div>
-
-          <div className={styles.todaySnap}>
-            <div className={styles.snapTitle}>Today&apos;s Snapshot</div>
-            {[
-              { label: "Calories",  val: `${Math.round(todayTotals.c)} / ${user?.calorieGoal || 2000}`, icon: "🔥" },
-              { label: "Protein",   val: `${Math.round(todayTotals.p)} / ${user?.proteinGoal || 150}g`, icon: "💪" },
-              { label: "Carbs",     val: `${Math.round(todayTotals.cb)} / ${user?.carbsGoal || 225}g`, icon: "🌾" },
-              { label: "Fat",       val: `${Math.round(todayTotals.f)} / ${user?.fatGoal || 65}g`,    icon: "🥑" },
-            ].map((s) => (
-              <div key={s.label} className={styles.snapRow}>
-                <span className={styles.snapEmoji}>{s.icon}</span>
-                <span className={styles.snapLabel}>{s.label}</span>
-                <span className={styles.snapVal}>{s.val}</span>
+    <AuthGuard>
+      <div className={styles.page}>
+        <Navbar />
+        <div className={styles.layout}>
+          {/* Side panel */}
+          <aside className={styles.sidebar}>
+            <div className={styles.sideHeader}>
+              <div className={styles.botAvatar}>
+                <span className="material-symbols-outlined">smart_toy</span>
+                <span className={styles.onlineDot} />
               </div>
-            ))}
-          </div>
+              <div>
+                <div className={styles.botName}>FitBot</div>
+                <div className={styles.botTagline}>Your AI Nutrition Coach</div>
+              </div>
+            </div>
 
-          <div className={styles.suggestLabel}>Quick Questions</div>
-          <div className={styles.suggestions}>
-            {SUGGESTIONS.map((s) => (
-              <button
-                key={s}
-                className={styles.suggestionBtn}
-                onClick={() => send(s)}
-                disabled={streaming}
-                id={`chat-suggest-${s.slice(0,10).replace(/\s+/g,"-").toLowerCase()}`}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
+            <div className={styles.todaySnap}>
+              <div className={styles.snapTitle}>Today&apos;s Snapshot</div>
+              {[
+                { label: "Calories",  val: `${Math.round(todayTotals.c)} / ${user?.calorieGoal || 2000}`, icon: "🔥" },
+                { label: "Protein",   val: `${Math.round(todayTotals.p)} / ${user?.proteinGoal || 150}g`, icon: "💪" },
+                { label: "Carbs",     val: `${Math.round(todayTotals.cb)} / ${user?.carbsGoal || 225}g`, icon: "🌾" },
+                { label: "Fat",       val: `${Math.round(todayTotals.f)} / ${user?.fatGoal || 65}g`,    icon: "🥑" },
+              ].map((s) => (
+                <div key={s.label} className={styles.snapRow}>
+                  <span className={styles.snapEmoji}>{s.icon}</span>
+                  <span className={styles.snapLabel}>{s.label}</span>
+                  <span className={styles.snapVal}>{s.val}</span>
+                </div>
+              ))}
+            </div>
 
-          {/* Model badge */}
-          <div className={styles.modelBadge}>
-            <span className="material-symbols-outlined">auto_awesome</span>
-            Kimi K2 · Groq
-          </div>
-        </aside>
+            <div className={styles.suggestLabel}>Quick Questions</div>
+            <div className={styles.suggestions}>
+              {SUGGESTIONS.map((s) => (
+                <button
+                  key={s}
+                  className={styles.suggestionBtn}
+                  onClick={() => send(s)}
+                  disabled={streaming}
+                  id={`chat-suggest-\${s.slice(0,10).replace(/\\s+/g,"-").toLowerCase()}`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
 
-        {/* Chat area */}
-        <div className={styles.chatWrap}>
-          <div className={styles.messages} id="fitbot-messages">
-            {messages.map((msg, i) => (
-              <div key={i} className={`${styles.msgRow} ${msg.role === "user" ? styles.msgRowUser : ""}`}>
-                {msg.role === "bot" && (
+            {/* Model badge */}
+            <div className={styles.modelBadge}>
+              <span className="material-symbols-outlined">auto_awesome</span>
+              Kimi K2 · Groq
+            </div>
+          </aside>
+
+          {/* Chat area */}
+          <div className={styles.chatWrap}>
+            <div className={styles.messages} id="fitbot-messages">
+              {messages.map((msg, i) => (
+                <div key={i} className={`\${styles.msgRow} \${msg.role === "user" ? styles.msgRowUser : ""}`}>
+                  {msg.role === "bot" && (
+                    <div className={styles.msgAvatar}>
+                      <span className="material-symbols-outlined">smart_toy</span>
+                    </div>
+                  )}
+                  <div className={`\${styles.bubble} \${msg.role === "user" ? styles.bubbleUser : styles.bubbleBot}`}>
+                    {msg.text === "" && streaming ? (
+                      /* Streaming typing indicator */
+                      <span className={styles.cursor}>▍</span>
+                    ) : (
+                      <div
+                        className={styles.bubbleText}
+                        dangerouslySetInnerHTML={{ __html: renderMd(msg.text) }}
+                      />
+                    )}
+                    {/* Show blinking cursor while this is the last bot message streaming */}
+                    {msg.role === "bot" && streaming && i === messages.length - 1 && msg.text !== "" && (
+                      <span className={styles.cursor}>▍</span>
+                    )}
+                    {msg.ts && <div className={styles.bubbleTs}>{msg.ts}</div>}
+                  </div>
+                </div>
+              ))}
+
+              {/* Classic typing dots while waiting for first token */}
+              {streaming && messages[messages.length - 1]?.text === "" && (
+                <div className={styles.msgRow}>
                   <div className={styles.msgAvatar}>
                     <span className="material-symbols-outlined">smart_toy</span>
                   </div>
-                )}
-                <div className={`${styles.bubble} ${msg.role === "user" ? styles.bubbleUser : styles.bubbleBot}`}>
-                  {msg.text === "" && streaming ? (
-                    /* Streaming typing indicator */
-                    <span className={styles.cursor}>▍</span>
-                  ) : (
-                    <div
-                      className={styles.bubbleText}
-                      dangerouslySetInnerHTML={{ __html: renderMd(msg.text) }}
-                    />
-                  )}
-                  {/* Show blinking cursor while this is the last bot message streaming */}
-                  {msg.role === "bot" && streaming && i === messages.length - 1 && msg.text !== "" && (
-                    <span className={styles.cursor}>▍</span>
-                  )}
-                  {msg.ts && <div className={styles.bubbleTs}>{msg.ts}</div>}
+                  <div className={`\${styles.bubble} \${styles.bubbleBot} \${styles.typingBubble}`}>
+                    <span className={styles.dot} /><span className={styles.dot} /><span className={styles.dot} />
+                  </div>
                 </div>
-              </div>
-            ))}
-
-            {/* Classic typing dots while waiting for first token */}
-            {streaming && messages[messages.length - 1]?.text === "" && (
-              <div className={styles.msgRow}>
-                <div className={styles.msgAvatar}>
-                  <span className="material-symbols-outlined">smart_toy</span>
-                </div>
-                <div className={`${styles.bubble} ${styles.bubbleBot} ${styles.typingBubble}`}>
-                  <span className={styles.dot} /><span className={styles.dot} /><span className={styles.dot} />
-                </div>
-              </div>
-            )}
-            <div ref={endRef} />
-          </div>
-
-          {/* Input */}
-          <div className={styles.inputWrap}>
-            {messages.length <= 2 && (
-              <div className={styles.chipRow}>
-                {SUGGESTIONS.map((s) => (
-                  <button
-                    key={s}
-                    className={styles.chipBtn}
-                    onClick={() => send(s)}
-                    disabled={streaming}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            )}
-            <div className={styles.inputBox}>
-              <textarea
-                className={styles.textarea}
-                rows={1}
-                placeholder="Ask FitBot anything about your nutrition…"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKey}
-                disabled={streaming}
-                id="fitbot-input"
-              />
-              <button
-                className={`${styles.sendBtn} ${input.trim() && !streaming ? styles.sendBtnActive : ""}`}
-                onClick={() => send()}
-                disabled={!input.trim() || streaming}
-                id="fitbot-send"
-              >
-                {streaming
-                  ? <span className={`material-symbols-outlined ${styles.spinIcon}`}>progress_activity</span>
-                  : <span className="material-symbols-outlined">send</span>
-                }
-              </button>
+              )}
+              <div ref={endRef} />
             </div>
-            <div className={styles.inputHint}>Press Enter to send · Shift+Enter for new line</div>
+
+            {/* Input */}
+            <div className={styles.inputWrap}>
+              {messages.length <= 2 && (
+                <div className={styles.chipRow}>
+                  {SUGGESTIONS.map((s) => (
+                    <button
+                      key={s}
+                      className={styles.chipBtn}
+                      onClick={() => send(s)}
+                      disabled={streaming}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className={styles.inputBox}>
+                <textarea
+                  className={styles.textarea}
+                  rows={1}
+                  placeholder="Ask FitBot anything about your nutrition…"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKey}
+                  disabled={streaming}
+                  id="fitbot-input"
+                />
+                <button
+                  className={`\${styles.sendBtn} \${input.trim() && !streaming ? styles.sendBtnActive : ""}`}
+                  onClick={() => send()}
+                  disabled={!input.trim() || streaming}
+                  id="fitbot-send"
+                >
+                  {streaming
+                    ? <span className={`material-symbols-outlined \${styles.spinIcon}`}>progress_activity</span>
+                    : <span className="material-symbols-outlined">send</span>
+                  }
+                </button>
+              </div>
+              <div className={styles.inputHint}>Press Enter to send · Shift+Enter for new line</div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </AuthGuard>
   );
 }

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Navbar } from "@/components/Navbar";
 import { useAuth } from "@/lib/auth-context";
 import styles from "./Profile.module.css";
+import { AuthGuard } from "@/components/AuthGuard";
 
 type Tab = "goals" | "account" | "notifications" | "premium";
 type SaveState = "idle" | "saving" | "done" | "error";
@@ -192,7 +193,7 @@ function Toast({ msg, type, visible }: { msg: string; type: "success" | "error";
    Main Page
 ───────────────────────────────────────────── */
 export default function ProfilePage() {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const userId = user?.id ? Number(user.id) : null;
 
   const [planInfo, setPlanInfo] = useState<any>(null);
@@ -352,293 +353,294 @@ export default function ProfilePage() {
   const initials = displayName.trim()
     .split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 
-  /* ── Render ── */
   return (
-    <div className={styles.page}>
-      <Navbar />
+    <AuthGuard>
+      <div className={styles.page}>
+        <Navbar />
 
-      {/* Toast */}
-      <Toast msg={toastMsg} type={toastType} visible={toastShow} />
+        {/* Toast */}
+        <Toast msg={toastMsg} type={toastType} visible={toastShow} />
 
-      <div className={styles.container}>
+        <div className={styles.container}>
 
-        {/* ── Profile hero card ── */}
-        <div className={styles.profileCard} id="profile-card">
-          <div className={styles.avatarWrap}>
-            <div className={styles.avatar}>
-              {loading
-                ? <Skeleton w="80px" h="80px" radius="50%" />
-                : <span style={{ fontWeight: 900, fontSize: "1.6rem", letterSpacing: "-0.02em" }}>
-                    {initials || "?"}
-                  </span>
-              }
-            </div>
-            {!loading && (
-              <button className={styles.avatarEditBtn} id="profile-edit-avatar" title="Change photo">
-                <span className="material-symbols-outlined">photo_camera</span>
-              </button>
-            )}
-          </div>
-
-          <div className={styles.profileInfo}>
-            {loading ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <Skeleton w="180px" h="22px" radius="6px" />
-                <Skeleton w="130px" h="14px" radius="6px" />
-                <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
-                  <Skeleton w="90px" h="22px" radius="100px" />
-                  <Skeleton w="80px" h="22px" radius="100px" />
-                  <Skeleton w="110px" h="22px" radius="100px" />
-                </div>
+          {/* ── Profile hero card ── */}
+          <div className={styles.profileCard} id="profile-card">
+            <div className={styles.avatarWrap}>
+              <div className={styles.avatar}>
+                {authLoading
+                  ? <Skeleton w="80px" h="80px" radius="50%" />
+                  : <span style={{ fontWeight: 900, fontSize: "1.6rem", letterSpacing: "-0.02em" }}>
+                      {initials || "?"}
+                    </span>
+                }
               </div>
-            ) : (
-              <>
-                <h2 className={styles.profileName}>{displayName || "Champ"} ✌️</h2>
-                <p className={styles.profileEmail}>{userEmail}</p>
-                <div className={styles.profileBadges}>
-                  <span className={styles.badge} style={{ background: "rgba(16,229,107,0.15)", color: "var(--accent-green)" }}>
-                    🔥 7-Day Streak
-                  </span>
-                  {/* Live plan badge — links to /plans */}
-                  <Link href="/plans" className={styles.badge} style={{ background: meta.glow, color: meta.color, textDecoration: "none" }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 13 }}>{meta.icon}</span>
-                    {meta.label} Plan
-                  </Link>
-                  <span className={styles.badge} style={{ background: "rgba(59,130,246,0.15)", color: "var(--primary-light)" }}>
-                    💪 Protein Champion
-                  </span>
-                </div>
-              </>
-            )}
-          </div>
-
-          <div className={styles.profileStats}>
-            {loading ? (
-              <>
-                <div className={styles.profileStat}><Skeleton w="40px" h="24px" radius="6px" /><Skeleton w="60px" h="11px" radius="4px" style={{ marginTop: 6 }} /></div>
-                <div className={styles.profileStat}><Skeleton w="40px" h="24px" radius="6px" /><Skeleton w="70px" h="11px" radius="4px" style={{ marginTop: 6 }} /></div>
-                <div className={styles.profileStat}><Skeleton w="50px" h="24px" radius="6px" /><Skeleton w="80px" h="11px" radius="4px" style={{ marginTop: 6 }} /></div>
-              </>
-            ) : (
-              <>
-                <div className={styles.profileStat}>
-                  <span className={styles.profileStatNum}>—</span>
-                  <span className={styles.profileStatLbl}>Days Logged</span>
-                </div>
-                <div className={styles.profileStat}>
-                  <span className={styles.profileStatNum}>—</span>
-                  <span className={styles.profileStatLbl}>Meals Scanned</span>
-                </div>
-                <div className={styles.profileStat}>
-                  <span className={styles.profileStatNum}>{weight} kg</span>
-                  <span className={styles.profileStatLbl}>Current Weight</span>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* ── Main content grid ── */}
-        <div className={styles.mainGrid}>
-
-          {/* Sidebar tabs */}
-          <nav className={styles.tabs} id="profile-tabs">
-            {TABS.map((t) => (
-              <button
-                key={t.id}
-                className={`${styles.tabBtn} ${tab === t.id ? styles.tabBtnActive : ""}`}
-                onClick={() => setTab(t.id)}
-                id={`profile-tab-${t.id}`}
-              >
-                <span className="material-symbols-outlined">{t.icon}</span>
-                <span className={styles.tabLabel}>{t.label}</span>
-              </button>
-            ))}
-          </nav>
-
-          {/* Panel */}
-          <div className={styles.panel}>
-
-            {/* ── Goals ── */}
-            {tab === "goals" && (
-              <div className={styles.goalsPanel}>
-                <h3 className={styles.panelTitle}>Nutrition Goals</h3>
-                <p className={styles.panelSub}>Fine-tune your daily targets. FitBot adapts its advice accordingly.</p>
-
-                <div className={styles.goalsList}>
-                  <GoalRow loading={loading} label="Daily Calories" unit="kcal" val={calories} setVal={setCalories} min={1200} max={4000}  step={50}  icon="🔥" id="profile-goal-daily-calories" />
-                  <GoalRow loading={loading} label="Protein"        unit="g"    val={protein}  setVal={setProtein}  min={40}   max={300}   step={5}   icon="💪" id="profile-goal-protein" />
-                  <GoalRow loading={loading} label="Carbohydrates"  unit="g"    val={carbs}    setVal={setCarbs}    min={50}   max={500}   step={5}   icon="🌾" id="profile-goal-carbohydrates" />
-                  <GoalRow loading={loading} label="Fat"            unit="g"    val={fat}      setVal={setFat}      min={20}   max={200}   step={2}   icon="🥑" id="profile-goal-fat" />
-                  <GoalRow loading={loading} label="Body Weight"    unit="kg"   val={weight}   setVal={setWeight}   min={30}   max={200}   step={0.5} icon="⚖️" id="profile-goal-body-weight" />
-                </div>
-
-                <button
-                  className={`${styles.saveBtn} ${styles[`saveBtn_${saveState}`]}`}
-                  onClick={handleSave}
-                  id="profile-save-goals"
-                  disabled={saveState === "saving" || loading}
-                >
-                  {saveState === "saving" && (
-                    <span className={styles.spinner} />
-                  )}
-                  {saveState === "done" && (
-                    <><span className="material-symbols-outlined">check</span>Saved!</>
-                  )}
-                  {saveState === "error" && (
-                    <><span className="material-symbols-outlined">error</span>Try Again</>
-                  )}
-                  {saveState === "idle" && (
-                    <><span className="material-symbols-outlined">save</span>Save Goals</>
-                  )}
+              {!authLoading && (
+                <button className={styles.avatarEditBtn} id="profile-edit-avatar" title="Change photo">
+                  <span className="material-symbols-outlined">photo_camera</span>
                 </button>
-              </div>
-            )}
+              )}
+            </div>
 
-            {/* ── Account ── */}
-            {tab === "account" && (
-              <div className={styles.accountPanel}>
-                <h3 className={styles.panelTitle}>Account Details</h3>
-                <div className={styles.fieldList}>
-                  <EditableField loading={loading} label="Display Name" value={displayName} id="profile-name-field"
-                    onSave={(v) => saveAccountField("name", v)} />
-                  <div className={styles.fieldRow} id="profile-email-field">
-                    {loading
-                      ? <><Skeleton w="100px" h="13px" /><Skeleton w="150px" h="13px" /></>
-                      : <><span className={styles.fieldLabel}>Email</span>
-                          <div className={styles.fieldVal}><span className={styles.fieldValueText}>{userEmail}</span></div></>
-                    }
+            <div className={styles.profileInfo}>
+              {authLoading ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <Skeleton w="180px" h="22px" radius="6px" />
+                  <Skeleton w="130px" h="14px" radius="6px" />
+                  <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                    <Skeleton w="90px" h="22px" radius="100px" />
+                    <Skeleton w="80px" h="22px" radius="100px" />
+                    <Skeleton w="110px" h="22px" radius="100px" />
                   </div>
-                  <EditableField loading={loading} label="Age (years)" value={ageYears} id="profile-age-field" type="number"
-                    onSave={(v) => saveAccountField("ageYears", v)} />
-                  <EditableField loading={loading} label="Height (cm)" value={heightCm} id="profile-height-field" type="number"
-                    onSave={(v) => saveAccountField("heightCm", v)} />
-                  <EditableField loading={loading} label="Gender" value={gender} id="profile-gender-field"
-                    onSave={(v) => saveAccountField("gender", v)} />
                 </div>
-                
-                <h3 className={styles.panelTitle} style={{ marginTop: 24, paddingBottom: 12, borderBottom: "1px solid var(--border)", fontSize: "16px" }}>Data Management</h3>
-                <div style={{ display: "flex", gap: "12px", marginTop: "16px", flexWrap: "wrap" }}>
-                  <button className={styles.manageBtn} disabled={exporting} onClick={handleExport} id="profile-export-data" style={{ background: "var(--surface-elevated)", borderColor: "var(--border)", color: "var(--text)" }}>
-                    {exporting ? <span className={styles.spinner} /> : <span className="material-symbols-outlined">download</span>}
-                    {exporting ? "Exporting..." : "Export Data (JSON)"}
-                  </button>
-                  <button className={styles.manageBtn} onClick={handleLogout} id="profile-logout-btn" style={{ background: "var(--surface-elevated)", borderColor: "var(--border)", color: "var(--text)" }}>
-                    <span className="material-symbols-outlined">logout</span>
-                    Log Out
-                  </button>
-                  <button className={styles.dangerBtn} disabled={deleting} onClick={handleDeleteAccount} id="profile-delete-account">
-                    {deleting ? <span className={styles.spinner} style={{ borderColor: "rgba(239,68,68,0.3)", borderTopColor: "#ef4444" }} /> : <span className="material-symbols-outlined">delete_forever</span>}
-                    {deleting ? "Deleting..." : "Delete Account"}
-                  </button>
-                </div>
-              </div>
-            )}
+              ) : (
+                <>
+                  <h2 className={styles.profileName}>{displayName || "Champ"} ✌️</h2>
+                  <p className={styles.profileEmail}>{userEmail}</p>
+                  <div className={styles.profileBadges}>
+                    <span className={styles.badge} style={{ background: "rgba(16,229,107,0.15)", color: "var(--accent-green)" }}>
+                      🔥 7-Day Streak
+                    </span>
+                    {/* Live plan badge — links to /plans */}
+                    <Link href="/plans" className={styles.badge} style={{ background: meta.glow, color: meta.color, textDecoration: "none" }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: 13 }}>{meta.icon}</span>
+                      {meta.label} Plan
+                    </Link>
+                    <span className={styles.badge} style={{ background: "rgba(59,130,246,0.15)", color: "var(--primary-light)" }}>
+                      💪 Protein Champion
+                    </span>
+                  </div>
+                </>
+              )}
+            </div>
 
-            {/* ── Notifications ── */}
-            {tab === "notifications" && (
-              <div className={styles.notifPanel}>
-                <h3 className={styles.panelTitle}>Notifications</h3>
-                {[
-                  { label: "Daily Calorie Reminder",    sub: "Get nudged if you haven't logged by 8 pm", on: true  },
-                  { label: "Streak Alerts",             sub: "Be warned before losing your streak",       on: true  },
-                  { label: "Weekly Progress Report",    sub: "Summary every Sunday morning",              on: true  },
-                  { label: "FitBot Tips",               sub: "Daily AI nutrition tip",                    on: false },
-                  { label: "New Feature Announcements", sub: "Stay up to date with CalAI",                on: false },
-                ].map((n) => (
-                  <div key={n.label} className={styles.notifRow} id={`profile-notif-${n.label.toLowerCase().replace(/\s+/g, "-")}`}>
-                    <div>
-                      <div className={styles.notifLabel}>{n.label}</div>
-                      <div className={styles.notifSub}>{n.sub}</div>
+            <div className={styles.profileStats}>
+              {authLoading ? (
+                <>
+                  <div className={styles.profileStat}><Skeleton w="40px" h="24px" radius="6px" /><Skeleton w="60px" h="11px" radius="4px" style={{ marginTop: 6 }} /></div>
+                  <div className={styles.profileStat}><Skeleton w="40px" h="24px" radius="6px" /><Skeleton w="70px" h="11px" radius="4px" style={{ marginTop: 6 }} /></div>
+                  <div className={styles.profileStat}><Skeleton w="50px" h="24px" radius="6px" /><Skeleton w="80px" h="11px" radius="4px" style={{ marginTop: 6 }} /></div>
+                </>
+              ) : (
+                <>
+                  <div className={styles.profileStat}>
+                    <span className={styles.profileStatNum}>—</span>
+                    <span className={styles.profileStatLbl}>Days Logged</span>
+                  </div>
+                  <div className={styles.profileStat}>
+                    <span className={styles.profileStatNum}>—</span>
+                    <span className={styles.profileStatLbl}>Meals Scanned</span>
+                  </div>
+                  <div className={styles.profileStat}>
+                    <span className={styles.profileStatNum}>{weight} kg</span>
+                    <span className={styles.profileStatLbl}>Current Weight</span>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* ── Main content grid ── */}
+          <div className={styles.mainGrid}>
+
+            {/* Sidebar tabs */}
+            <nav className={styles.tabs} id="profile-tabs">
+              {TABS.map((t) => (
+                <button
+                  key={t.id}
+                  className={`${styles.tabBtn} ${tab === t.id ? styles.tabBtnActive : ""}`}
+                  onClick={() => setTab(t.id)}
+                  id={`profile-tab-${t.id}`}
+                >
+                  <span className="material-symbols-outlined">{t.icon}</span>
+                  <span className={styles.tabLabel}>{t.label}</span>
+                </button>
+              ))}
+            </nav>
+
+            {/* Panel */}
+            <div className={styles.panel}>
+
+              {/* ── Goals ── */}
+              {tab === "goals" && (
+                <div className={styles.goalsPanel}>
+                  <h3 className={styles.panelTitle}>Nutrition Goals</h3>
+                  <p className={styles.panelSub}>Fine-tune your daily targets. FitBot adapts its advice accordingly.</p>
+
+                  <div className={styles.goalsList}>
+                    <GoalRow loading={authLoading} label="Daily Calories" unit="kcal" val={calories} setVal={setCalories} min={1200} max={4000}  step={50}  icon="🔥" id="profile-goal-daily-calories" />
+                    <GoalRow loading={authLoading} label="Protein"        unit="g"    val={protein}  setVal={setProtein}  min={40}   max={300}   step={5}   icon="💪" id="profile-goal-protein" />
+                    <GoalRow loading={authLoading} label="Carbohydrates"  unit="g"    val={carbs}    setVal={setCarbs}    min={50}   max={500}   step={5}   icon="🌾" id="profile-goal-carbohydrates" />
+                    <GoalRow loading={authLoading} label="Fat"            unit="g"    val={fat}      setVal={setFat}      min={20}   max={200}   step={2}   icon="🥑" id="profile-goal-fat" />
+                    <GoalRow loading={authLoading} label="Body Weight"    unit="kg"   val={weight}   setVal={setWeight}   min={30}   max={200}   step={0.5} icon="⚖️" id="profile-goal-body-weight" />
+                  </div>
+
+                  <button
+                    className={`${styles.saveBtn} ${styles[`saveBtn_${saveState}`]}`}
+                    onClick={handleSave}
+                    id="profile-save-goals"
+                    disabled={saveState === "saving" || authLoading}
+                  >
+                    {saveState === "saving" && (
+                      <span className={styles.spinner} />
+                    )}
+                    {saveState === "done" && (
+                      <><span className="material-symbols-outlined">check</span>Saved!</>
+                    )}
+                    {saveState === "error" && (
+                      <><span className="material-symbols-outlined">error</span>Try Again</>
+                    )}
+                    {saveState === "idle" && (
+                      <><span className="material-symbols-outlined">save</span>Save Goals</>
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {/* ── Account ── */}
+              {tab === "account" && (
+                <div className={styles.accountPanel}>
+                  <h3 className={styles.panelTitle}>Account Details</h3>
+                  <div className={styles.fieldList}>
+                    <EditableField loading={authLoading} label="Display Name" value={displayName} id="profile-name-field"
+                      onSave={(v) => saveAccountField("name", v)} />
+                    <div className={styles.fieldRow} id="profile-email-field">
+                      {authLoading
+                        ? <><Skeleton w="100px" h="13px" /><Skeleton w="150px" h="13px" /></>
+                        : <><span className={styles.fieldLabel}>Email</span>
+                            <div className={styles.fieldVal}><span className={styles.fieldValueText}>{userEmail}</span></div></>
+                      }
                     </div>
-                    <label className={styles.toggle}>
-                      <input type="checkbox" defaultChecked={n.on} className={styles.toggleInput} />
-                      <span className={styles.toggleSlider} />
-                    </label>
+                    <EditableField loading={authLoading} label="Age (years)" value={ageYears} id="profile-age-field" type="number"
+                      onSave={(v) => saveAccountField("ageYears", v)} />
+                    <EditableField loading={authLoading} label="Height (cm)" value={heightCm} id="profile-height-field" type="number"
+                      onSave={(v) => saveAccountField("heightCm", v)} />
+                    <EditableField loading={authLoading} label="Gender" value={gender} id="profile-gender-field"
+                      onSave={(v) => saveAccountField("gender", v)} />
                   </div>
-                ))}
-              </div>
-            )}
-
-            {/* ── Premium ── */}
-            {tab === "premium" && (
-              <div className={styles.premiumPanel}>
-                <div className={styles.premiumBanner}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 48, color: meta.color }}>
-                    {meta.icon}
-                  </span>
-                  <h3 className={styles.premiumTitle}>
-                    {currentPlan === "free"
-                      ? "You're on the Free Plan"
-                      : `You're on CalAI ${meta.label} ⭐`
-                    }
-                  </h3>
-                  <p className={styles.premiumSub}>
-                    {currentPlan === "free"
-                      ? "Upgrade to unlock unlimited AI scans, advanced analytics and more."
-                      : currentPlan === "pro"
-                        ? "Pro plan active · $9/month"
-                        : "Ultra plan active · $19/month"
-                    }
-                  </p>
+                  
+                  <h3 className={styles.panelTitle} style={{ marginTop: 24, paddingBottom: 12, borderBottom: "1px solid var(--border)", fontSize: "16px" }}>Data Management</h3>
+                  <div style={{ display: "flex", gap: "12px", marginTop: "16px", flexWrap: "wrap" }}>
+                    <button className={styles.manageBtn} disabled={exporting} onClick={handleExport} id="profile-export-data" style={{ background: "var(--surface-elevated)", borderColor: "var(--border)", color: "var(--text)" }}>
+                      {exporting ? <span className={styles.spinner} /> : <span className="material-symbols-outlined">download</span>}
+                      {exporting ? "Exporting..." : "Export Data (JSON)"}
+                    </button>
+                    <button className={styles.manageBtn} onClick={handleLogout} id="profile-logout-btn" style={{ background: "var(--surface-elevated)", borderColor: "var(--border)", color: "var(--text)" }}>
+                      <span className="material-symbols-outlined">logout</span>
+                      Log Out
+                    </button>
+                    <button className={styles.dangerBtn} disabled={deleting} onClick={handleDeleteAccount} id="profile-delete-account">
+                      {deleting ? <span className={styles.spinner} style={{ borderColor: "rgba(239,68,68,0.3)", borderTopColor: "#ef4444" }} /> : <span className="material-symbols-outlined">delete_forever</span>}
+                      {deleting ? "Deleting..." : "Delete Account"}
+                    </button>
+                  </div>
                 </div>
+              )}
 
-                {currentPlan !== "free" && (
-                  <div className={styles.premiumFeatures}>
-                    {(currentPlan === "pro"
-                      ? [
-                          "Unlimited AI meal scans",
-                          "FitBot personalised coaching",
-                          "Advanced macro analytics",
-                          "Custom goal setting",
-                          "Progress charts",
-                          "Export CSV / PDF",
-                        ]
-                      : [
-                          "Everything in Pro",
-                          "Body scan AI analysis",
-                          "Weekly AI insights",
-                          "AI meal planning",
-                          "Priority AI responses",
-                          "24/7 dedicated support",
-                        ]
-                    ).map((f) => (
-                      <div key={f} className={styles.premiumFeature}>
-                        <span className="material-symbols-outlined" style={{ color: "var(--accent-green)" }}>check_circle</span>
-                        {f}
+              {/* ── Notifications ── */}
+              {tab === "notifications" && (
+                <div className={styles.notifPanel}>
+                  <h3 className={styles.panelTitle}>Notifications</h3>
+                  {[
+                    { label: "Daily Calorie Reminder",    sub: "Get nudged if you haven't logged by 8 pm", on: true  },
+                    { label: "Streak Alerts",             sub: "Be warned before losing your streak",       on: true  },
+                    { label: "Weekly Progress Report",    sub: "Summary every Sunday morning",              on: true  },
+                    { label: "FitBot Tips",               sub: "Daily AI nutrition tip",                    on: false },
+                    { label: "New Feature Announcements", sub: "Stay up to date with CalAI",                on: false },
+                  ].map((n) => (
+                    <div key={n.label} className={styles.notifRow} id={`profile-notif-${n.label.toLowerCase().replace(/\s+/g, "-")}`}>
+                      <div>
+                        <div className={styles.notifLabel}>{n.label}</div>
+                        <div className={styles.notifSub}>{n.sub}</div>
                       </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* CTA buttons */}
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  {currentPlan === "free" ? (
-                    <Link href="/plans" className={styles.manageBtn} id="profile-upgrade-btn"
-                      style={{ background: "var(--primary)", color: "#fff", boxShadow: "0 6px 24px rgba(59,150,245,.3)", textDecoration: "none" }}>
-                      <span className="material-symbols-outlined">rocket_launch</span>
-                      Upgrade Now
-                    </Link>
-                  ) : (
-                    <Link href="/plans" className={styles.manageBtn} id="profile-manage-subscription"
-                      style={{ textDecoration: "none" }}>
-                      <span className="material-symbols-outlined">workspace_premium</span>
-                      Manage Subscription
-                    </Link>
-                  )}
-                  {currentPlan !== "ultra" && (
-                    <Link href="/plans" className={styles.manageBtn} id="profile-view-plans"
-                      style={{ background: "var(--surface-elevated)", borderColor: "var(--border)", textDecoration: "none" }}>
-                      <span className="material-symbols-outlined">compare_arrows</span>
-                      View All Plans
-                    </Link>
-                  )}
+                      <label className={styles.toggle}>
+                        <input type="checkbox" defaultChecked={n.on} className={styles.toggleInput} />
+                        <span className={styles.toggleSlider} />
+                      </label>
+                    </div>
+                  ))}
                 </div>
-              </div>
-            )}
+              )}
+
+              {/* ── Premium ── */}
+              {tab === "premium" && (
+                <div className={styles.premiumPanel}>
+                  <div className={styles.premiumBanner}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 48, color: meta.color }}>
+                      {meta.icon}
+                    </span>
+                    <h3 className={styles.premiumTitle}>
+                      {currentPlan === "free"
+                        ? "You're on the Free Plan"
+                        : `You're on CalAI ${meta.label} ⭐`
+                      }
+                    </h3>
+                    <p className={styles.premiumSub}>
+                      {currentPlan === "free"
+                        ? "Upgrade to unlock unlimited AI scans, advanced analytics and more."
+                        : currentPlan === "pro"
+                          ? "Pro plan active · $9/month"
+                          : "Ultra plan active · $19/month"
+                      }
+                    </p>
+                  </div>
+
+                  {currentPlan !== "free" && (
+                    <div className={styles.premiumFeatures}>
+                      {(currentPlan === "pro"
+                        ? [
+                            "Unlimited AI meal scans",
+                            "FitBot personalised coaching",
+                            "Advanced macro analytics",
+                            "Custom goal setting",
+                            "Progress charts",
+                            "Export CSV / PDF",
+                          ]
+                        : [
+                            "Everything in Pro",
+                            "Body scan AI analysis",
+                            "Weekly AI insights",
+                            "AI meal planning",
+                            "Priority AI responses",
+                            "24/7 dedicated support",
+                          ]
+                      ).map((f) => (
+                        <div key={f} className={styles.premiumFeature}>
+                          <span className="material-symbols-outlined" style={{ color: "var(--accent-green)" }}>check_circle</span>
+                          {f}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* CTA buttons */}
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    {currentPlan === "free" ? (
+                      <Link href="/plans" className={styles.manageBtn} id="profile-upgrade-btn"
+                        style={{ background: "var(--primary)", color: "#fff", boxShadow: "0 6px 24px rgba(59,150,245,.3)", textDecoration: "none" }}>
+                        <span className="material-symbols-outlined">rocket_launch</span>
+                        Upgrade Now
+                      </Link>
+                    ) : (
+                      <Link href="/plans" className={styles.manageBtn} id="profile-manage-subscription"
+                        style={{ textDecoration: "none" }}>
+                        <span className="material-symbols-outlined">workspace_premium</span>
+                        Manage Subscription
+                      </Link>
+                    )}
+                    {currentPlan !== "ultra" && (
+                      <Link href="/plans" className={styles.manageBtn} id="profile-view-plans"
+                        style={{ background: "var(--surface-elevated)", borderColor: "var(--border)", textDecoration: "none" }}>
+                        <span className="material-symbols-outlined">compare_arrows</span>
+                        View All Plans
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </AuthGuard>
   );
 }

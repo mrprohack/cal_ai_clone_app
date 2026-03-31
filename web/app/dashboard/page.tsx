@@ -9,6 +9,7 @@ import { Navbar } from "@/components/Navbar";
 import { useAuth } from "@/lib/auth-context";
 import Link from "next/link";
 import styles from "./Dashboard.module.css";
+import { AuthGuard } from "@/components/AuthGuard";
 
 /* ─── Animated Double Ring ─── */
 function DoubleRing({
@@ -63,8 +64,10 @@ function DoubleRing({
           <span>Calories</span>
         </div>
         <div className={styles.ringLegendItem}>
-          <div className={styles.legendDot} style={{ background: "var(--accent-green)" }} />
-          <span>Protein</span>
+          <div className={styles.ringLegendItem}>
+            <div className={styles.legendDot} style={{ background: "var(--accent-green)" }} />
+            <span>Protein</span>
+          </div>
         </div>
       </div>
     </div>
@@ -144,6 +147,13 @@ function getFromDate(days: number): string {
   return d.toISOString().split("T")[0];
 }
 
+function getTimeOfDay() {
+  const h = new Date().getHours();
+  if (h < 12) return "morning";
+  if (h < 17) return "afternoon";
+  return "evening";
+}
+
 /* ─── Main Page ─── */
 export default function DashboardPage() {
   const today = new Date().toISOString().split("T")[0];
@@ -172,7 +182,7 @@ export default function DashboardPage() {
         statsRes,
         progressRes
       ] = await Promise.all([
-        getTodayMeals(today), // wait, checking if getTodayMeals from actions fits or use byDate(uId, today)
+        getTodayMeals(today), 
         getDailySummary(uId, today),
         getWeightHistory(uId, getFromDate(90), today),
         listPhotos(uId),
@@ -262,205 +272,200 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className={styles.page}>
-      <Navbar />
+    <AuthGuard>
+      <div className={styles.page}>
+        <Navbar />
 
-      <div className={styles.container}>
-        {/* ── Greeting bar ── */}
-        <div className={styles.greetBar}>
-          <div>
-            <h1 className={styles.greetTitle}>
-              Good {getTimeOfDay()}, {user?.name?.split(" ")[0] || "Champ"} 👋
-            </h1>
-            <p className={styles.greetSub}>
-              {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
-            </p>
+        <div className={styles.container}>
+          {/* ── Greeting bar ── */}
+          <div className={styles.greetBar}>
+            <div>
+              <h1 className={styles.greetTitle}>
+                Good {getTimeOfDay()}, {user?.name?.split(" ")[0] || "Champ"} 👋
+              </h1>
+              <p className={styles.greetSub}>
+                {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+              </p>
+            </div>
+            <div className={styles.greetChips}>
+              <StatChip icon="local_fire_department" label="Consumed" value={`${Math.round(consumed)} kcal`} color="var(--primary)" />
+              <StatChip icon="fitness_center"        label="Burned"   value={`${burned} kcal`}              color="var(--accent-green)" />
+              <StatChip icon="balance"               label="Net"      value={`${Math.round(net)} kcal`}     color={net < calorieTarget ? "var(--accent-green)" : "var(--fat)"} />
+              <StatChip icon="whatshot"              label="Streak"   value={`${streak} Days`}              color="var(--accent-orange)" />
+            </div>
           </div>
-          <div className={styles.greetChips}>
-            <StatChip icon="local_fire_department" label="Consumed" value={`${Math.round(consumed)} kcal`} color="var(--primary)" />
-            <StatChip icon="fitness_center"        label="Burned"   value={`${burned} kcal`}              color="var(--accent-green)" />
-            <StatChip icon="balance"               label="Net"      value={`${Math.round(net)} kcal`}     color={net < calorieTarget ? "var(--accent-green)" : "var(--fat)"} />
-            <StatChip icon="whatshot"              label="Streak"   value={`${streak} Days`}              color="var(--accent-orange)" />
-          </div>
-        </div>
 
-        {/* ── Main grid ── */}
-        <div className={styles.mainGrid}>
-          {/* ── Ring + Macros card ── */}
-          <div className={`${styles.glassCard} ${styles.ringCard}`}>
-            <div className={styles.cardLabel}>Daily Progress</div>
-            <div className={styles.ringMacroWrap}>
-              <DoubleRing
-                cals={consumed} calTarget={calorieTarget}
-                protein={protein} proteinTarget={proteinTarget}
-              />
-              <div className={styles.macrosColumn}>
-                <MacroBar label="Protein" current={protein} target={proteinTarget} color="var(--protein)"  emoji="🥩" />
-                <MacroBar label="Carbs"   current={carbs}   target={carbsTarget}  color="var(--carbs)"   emoji="🌾" />
-                <MacroBar label="Fat"     current={fat}      target={fatTarget}    color="var(--fat)"     emoji="🥑" />
-                <MacroBar label="Burned"  current={burned}   target={600}          color="var(--primary)" emoji="🔥" unit="kcal" />
+          {/* ── Main grid ── */}
+          <div className={styles.mainGrid}>
+            {/* ── Ring + Macros card ── */}
+            <div className={`${styles.glassCard} ${styles.ringCard}`}>
+              <div className={styles.cardLabel}>Daily Progress</div>
+              <div className={styles.ringMacroWrap}>
+                <DoubleRing
+                  cals={consumed} calTarget={calorieTarget}
+                  protein={protein} proteinTarget={proteinTarget}
+                />
+                <div className={styles.macrosColumn}>
+                  <MacroBar label="Protein" current={protein} target={proteinTarget} color="var(--protein)"  emoji="🥩" />
+                  <MacroBar label="Carbs"   current={carbs}   target={carbsTarget}  color="var(--carbs)"   emoji="🌾" />
+                  <MacroBar label="Fat"     current={fat}      target={fatTarget}    color="var(--fat)"     emoji="🥑" />
+                  <MacroBar label="Burned"  current={burned}   target={600}          color="var(--primary)" emoji="🔥" unit="kcal" />
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* ── Scan Action card ── */}
-          <Link href="/log" className={`${styles.scanCard}`} id="dash-scan-btn">
-            <div className={styles.scanGlow} aria-hidden />
-            <span className={`material-symbols-outlined ${styles.scanBg}`} aria-hidden>center_focus_strong</span>
-            <div className={styles.scanIconBox}>
-              <span className="material-symbols-outlined">linked_camera</span>
-            </div>
-            <h3 className={styles.scanTitle}>Log Meal with AI</h3>
-            <p className={styles.scanSub}>Snap a photo · Get instant macros · Zero effort</p>
-            <div className={styles.scanCta}>
-              <span>Scan Now</span>
-              <span className="material-symbols-outlined">arrow_forward</span>
-            </div>
-          </Link>
-        </div>
-
-        {/* ── Today's Meals ── */}
-        <section>
-          <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle}>Today's Meals</h2>
-            <Link href="/log" className={styles.sectionLink}>
-              View All <span className="material-symbols-outlined">chevron_right</span>
+            {/* ── Scan Action card ── */}
+            <Link href="/log" className={`${styles.scanCard}`} id="dash-scan-btn">
+              <div className={styles.scanGlow} aria-hidden />
+              <span className={`material-symbols-outlined ${styles.scanBg}`} aria-hidden>center_focus_strong</span>
+              <div className={styles.scanIconBox}>
+                <span className="material-symbols-outlined">linked_camera</span>
+              </div>
+              <h3 className={styles.scanTitle}>Log Meal with AI</h3>
+              <p className={styles.scanSub}>Snap a photo · Get instant macros · Zero effort</p>
+              <div className={styles.scanCta}>
+                <span>Scan Now</span>
+                <span className="material-symbols-outlined">arrow_forward</span>
+              </div>
             </Link>
           </div>
-          <div className={styles.mealRow}>
-            {meals.map((meal: any, idx: number) => {
-              const tagClasses = [styles.tagBreakfast, styles.tagLunch, styles.tagDinner, styles.tagSnack];
-              const fallbackImgs = [
-                "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=800&auto=format&fit=crop",
-                "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=800&auto=format&fit=crop",
-                "https://images.unsplash.com/photo-1467003909585-2f8a72700288?q=80&w=800&auto=format&fit=crop",
-                "https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=800&auto=format&fit=crop",
-              ];
-              return (
-                <div key={meal._id} className={styles.mealCard}>
-                  <img
-                    src={meal.imageUrl || fallbackImgs[idx % 4]}
-                    alt={meal.mealType}
-                    className={styles.mealImg}
-                  />
-                  <div className={styles.mealOverlay} />
-                  <div className={styles.mealContent}>
-                    <span className={`${styles.mealTag} ${tagClasses[idx % 4]}`}>{meal.mealType}</span>
-                    <h4 className={styles.mealName}>{meal.name}</h4>
-                    <p className={styles.mealMeta}>{Math.round(meal.calories)} kcal · {Math.round(meal.proteinG)}g protein</p>
+
+          {/* ── Today's Meals ── */}
+          <section>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>Today's Meals</h2>
+              <Link href="/log" className={styles.sectionLink}>
+                View All <span className="material-symbols-outlined">chevron_right</span>
+              </Link>
+            </div>
+            <div className={styles.mealRow}>
+              {meals.map((meal: any, idx: number) => {
+                const tagClasses = [styles.tagBreakfast, styles.tagLunch, styles.tagDinner, styles.tagSnack];
+                const fallbackImgs = [
+                  "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=800&auto=format&fit=crop",
+                  "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=800&auto=format&fit=crop",
+                  "https://images.unsplash.com/photo-1467003909585-2f8a72700288?q=80&w=800&auto=format&fit=crop",
+                  "https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=800&auto=format&fit=crop",
+                ];
+                return (
+                  <div key={meal._id} className={styles.mealCard}>
+                    <img
+                      src={meal.imageUrl || fallbackImgs[idx % 4]}
+                      alt={meal.mealType}
+                      className={styles.mealImg}
+                    />
+                    <div className={styles.mealOverlay} />
+                    <div className={styles.mealContent}>
+                      <span className={`${styles.mealTag} ${tagClasses[idx % 4]}`}>{meal.mealType}</span>
+                      <h4 className={styles.mealName}>{meal.name}</h4>
+                      <p className={styles.mealMeta}>{Math.round(meal.calories)} kcal · {Math.round(meal.proteinG)}g protein</p>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-            {/* Add a meal card */}
-            <Link href="/log" className={styles.addMealCard} id="dash-add-meal">
-              <span className={`material-symbols-outlined ${styles.addMealIcon}`}>add_circle</span>
-              <span className={styles.addMealText}>Log Next Meal</span>
-            </Link>
-          </div>
-        </section>
-
-        {/* ── Bottom Row ── */}
-        <div className={styles.bottomRow}>
-          {/* Progress card */}
-          <div className={styles.glassCard}>
-            <div className={styles.cardLabel}>Body Progress</div>
-            <div className={styles.progressWeight}>
-              <span className={styles.progressWeightVal}>{currentWeight ? currentWeight + " kg" : "--"}</span>
-              <span className={styles.progressWeightLabel}>Current Weight</span>
+                );
+              })}
+              {/* Add a meal card */}
+              <Link href="/log" className={styles.addMealCard} id="dash-add-meal">
+                <span className={`material-symbols-outlined ${styles.addMealIcon}`}>add_circle</span>
+                <span className={styles.addMealText}>Log Next Meal</span>
+              </Link>
             </div>
-            <div className={styles.progressPhotos}>
-              {[initialPhoto, currentPhoto].map((p) => (
-                <div key={p.label} className={styles.photoCol}>
-                  <div className={`${styles.photoBox} ${p.active ? styles.photoBoxActive : ""}`}>
-                    <img src={p.src} alt={p.label} className={styles.photoImg} />
-                    <span className={`${styles.photoDate} ${p.active ? styles.photoDateActive : ""}`}>{p.date}</span>
-                  </div>
-                  <span className={`${styles.photoLabel} ${p.active ? styles.photoLabelActive : ""}`}>{p.label}</span>
-                </div>
-              ))}
-            </div>
-            <Link href="/progress" className={styles.updateBtn}>
-              <span className="material-symbols-outlined">camera_alt</span>
-              Update Progress Photo
-            </Link>
-          </div>
+          </section>
 
-          {/* Weekly chart + AI insights */}
-          <div className={styles.insightsCol}>
-            {/* AI tips */}
+          {/* ── Bottom Row ── */}
+          <div className={styles.bottomRow}>
+            {/* Progress card */}
             <div className={styles.glassCard}>
-              <div className={styles.cardLabel}>AI Insights</div>
-              <div className={styles.insightList}>
-                <div className={`${styles.insight} ${styles.insightBlue}`}>
-                  <span className={`material-symbols-outlined ${styles.insightIcon}`}>psychology</span>
-                  <div>
-                    <strong>Protein Status</strong>
-                    <p>
-                      {protein < proteinTarget * 0.5
-                        ? "You're behind on protein today. Try adding Greek yogurt or chicken."
-                        : `Great! You're at ${Math.round((protein / proteinTarget) * 100)}% of your protein goal. Keep it up!`}
-                    </p>
-                  </div>
-                </div>
-                <div className={`${styles.insight} ${styles.insightGreen}`}>
-                  <span className={`material-symbols-outlined ${styles.insightIcon}`}>trending_down</span>
-                  <div>
-                    <strong>Calorie Balance</strong>
-                    <p>
-                      {consumed < calorieTarget
-                        ? `${Math.round(calorieTarget - consumed)} kcal remaining today — ideal for a slight deficit.`
-                        : "You've reached your calorie target. Avoid late-night snacking!"}
-                    </p>
-                  </div>
-                </div>
+              <div className={styles.cardLabel}>Body Progress</div>
+              <div className={styles.progressWeight}>
+                <span className={styles.progressWeightVal}>{currentWeight ? currentWeight + " kg" : "--"}</span>
+                <span className={styles.progressWeightLabel}>Current Weight</span>
               </div>
+              <div className={styles.progressPhotos}>
+                {[initialPhoto, currentPhoto].map((p) => (
+                  <div key={p.label} className={styles.photoCol}>
+                    <div className={`${styles.photoBox} ${p.active ? styles.photoBoxActive : ""}`}>
+                      <img src={p.src} alt={p.label} className={styles.photoImg} />
+                      <span className={`${styles.photoDate} ${p.active ? styles.photoDateActive : ""}`}>{p.date}</span>
+                    </div>
+                    <span className={`${styles.photoLabel} ${p.active ? styles.photoLabelActive : ""}`}>{p.label}</span>
+                  </div>
+                ))}
+              </div>
+              <Link href="/progress" className={styles.updateBtn}>
+                <span className="material-symbols-outlined">camera_alt</span>
+                Update Progress Photo
+              </Link>
             </div>
 
-            {/* Weekly chart */}
-            <div className={styles.glassCard}>
-              <div className={styles.cardLabel}>
-                <span className={`material-symbols-outlined ${styles.chartIcon}`}>analytics</span>
-                Weekly Calorie Trend
+            {/* Weekly chart + AI insights */}
+            <div className={styles.insightsCol}>
+              {/* AI tips */}
+              <div className={styles.glassCard}>
+                <div className={styles.cardLabel}>AI Insights</div>
+                <div className={styles.insightList}>
+                  <div className={`${styles.insight} ${styles.insightBlue}`}>
+                    <span className={`material-symbols-outlined ${styles.insightIcon}`}>psychology</span>
+                    <div>
+                      <strong>Protein Status</strong>
+                      <p>
+                        {protein < proteinTarget * 0.5
+                          ? "You're behind on protein today. Try adding Greek yogurt or chicken."
+                          : `Great! You're at ${Math.round((protein / proteinTarget) * 100)}% of your protein goal. Keep it up!`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className={`${styles.insight} ${styles.insightGreen}`}>
+                    <span className={`material-symbols-outlined ${styles.insightIcon}`}>trending_down</span>
+                    <div>
+                      <strong>Calorie Balance</strong>
+                      <p>
+                        {consumed < calorieTarget
+                          ? `${Math.round(calorieTarget - consumed)} kcal remaining today — ideal for a slight deficit.`
+                          : "You've reached your calorie target. Avoid late-night snacking!"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <WeekChart data={weekData} />
-            </div>
 
-            {/* Hydration tracking */}
-            <div className={`${styles.glassCard} ${styles.waterCard}`}>
-              <div className={styles.waterTitle}><span className="material-symbols-outlined" style={{color: "var(--primary)"}}>water_drop</span> Hydration</div>
-              <div className={styles.waterDropWrap}>
-                <span className={`material-symbols-outlined ${styles.waterDrop}`}>water_drop</span>
+              {/* Weekly chart */}
+              <div className={styles.glassCard}>
+                <div className={styles.cardLabel}>
+                  <span className={`material-symbols-outlined ${styles.chartIcon}`}>analytics</span>
+                  Weekly Calorie Trend
+                </div>
+                <WeekChart data={weekData} />
               </div>
-              <div className={styles.waterValue}>{(waterMl / 1000).toFixed(1)}L</div>
-              <div className={styles.waterTarget}>of {(waterTarget / 1000).toFixed(1)}L Daily Target</div>
-              <button className={styles.waterCta} onClick={handleAddWater}>
-                <span className="material-symbols-outlined">add</span> 250ml Glass
-              </button>
+
+              {/* Hydration tracking */}
+              <div className={`${styles.glassCard} ${styles.waterCard}`}>
+                <div className={styles.waterTitle}><span className="material-symbols-outlined" style={{color: "var(--primary)"}}>water_drop</span> Hydration</div>
+                <div className={styles.waterDropWrap}>
+                  <span className={`material-symbols-outlined ${styles.waterDrop}`}>water_drop</span>
+                </div>
+                <div className={styles.waterValue}>{(waterMl / 1000).toFixed(1)}L</div>
+                <div className={styles.waterTarget}>of {(waterTarget / 1000).toFixed(1)}L Daily Target</div>
+                <button className={styles.waterCta} onClick={handleAddWater}>
+                  <span className="material-symbols-outlined">add</span> 250ml Glass
+                </button>
+              </div>
             </div>
           </div>
         </div>
+
+        {/* FitBot FAB */}
+        <Link href="/chat" className={styles.fab} id="dash-fitbot-fab">
+          <div className={styles.fabGlow} aria-hidden />
+
+          <div className={styles.fabTooltip}>
+            <div className={styles.fabTooltipTitle}>FitBot AI</div>
+            <div className={styles.fabTooltipText}>
+              "{user?.name?.split(" ")[0] || "Hey"}! I'm ready to help with macros, workouts &amp; more."
+            </div>
+            <div className={styles.fabTooltipArrow} />
+          </div>
+        </Link>
       </div>
-
-      {/* FitBot FAB */}
-      <Link href="/chat" className={styles.fab} id="dash-fitbot-fab">
-        <div className={styles.fabGlow} aria-hidden />
-
-        <div className={styles.fabTooltip}>
-          <div className={styles.fabTooltipTitle}>FitBot AI</div>
-          <div className={styles.fabTooltipText}>
-            "{user?.name?.split(" ")[0] || "Hey"}! I'm ready to help with macros, workouts &amp; more."
-          </div>
-          <div className={styles.fabTooltipArrow} />
-        </div>
-      </Link>
-    </div>
+    </AuthGuard>
   );
-}
-
-function getTimeOfDay() {
-  const h = new Date().getHours();
-  if (h < 12) return "morning";
-  if (h < 17) return "afternoon";
-  return "evening";
 }

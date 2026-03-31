@@ -150,7 +150,8 @@ web/
 │
 ├── components/
 │   ├── Navbar.tsx                  # Top navigation (shared across all pages)
-│   └── Navbar.module.css
+│   ├── Navbar.module.css
+│   └── AuthGuard.tsx               # Route protection wrapper
 │
 ├── convex/                         # ← WEB APP'S OWN CONVEX BACKEND
 │   ├── schema.ts                   # Database schema (source of truth)
@@ -641,7 +642,8 @@ web/
 │
 ├── components/
 │   ├── Navbar.tsx                  # Top navigation (shared across all pages)
-│   └── Navbar.module.css
+│   ├── Navbar.module.css
+│   └── AuthGuard.tsx               # Route protection wrapper
 │
 ├── convex/                         # ← WEB APP'S OWN CONVEX BACKEND
 │   ├── schema.ts                   # Database schema (source of truth)
@@ -757,4 +759,4 @@ pm2 restart cal-ai-web
 | Site loads but pages 404 | Missing `.next/` build | Rebuild and redeploy |
 | CSS/JS not loading | `_next/` assets not proxied | Verify `.htaccess` has the `_next` rewrite rule |
 
-> **Last audited:** 2026-03-26 · Added SSH & deployment section with production server details, pm2 management, and troubleshooting guide.
+> **Last audited:** 2026-03-27 · Implemented AuthGuard route protection across all protected pages.

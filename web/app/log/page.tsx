@@ -19,6 +19,7 @@ import { search as searchFoods } from "@/lib/actions/foods";
 import { useAuth } from "@/lib/auth-context";
 import { Navbar } from "@/components/Navbar";
 import styles from "./Log.module.css";
+import { AuthGuard } from "@/components/AuthGuard";
 
 /* ═══════════════════════════════════════════════════════════
    CONSTANTS & TYPES
@@ -657,604 +658,229 @@ export default function LogPage() {
      RENDER
   ═══════════════════════════════════════════════════════ */
   return (
-    <div className={styles.page}>
-      <Navbar />
+    <AuthGuard>
+      <div className={styles.page}>
+        <Navbar />
 
-      {/* ── Global toast ── */}
-      {toast && (
-        <div
-          className={`${styles.toast} ${toast.type === "error" ? styles.toastError : ""}`}
-          role="status"
-          aria-live="polite"
-        >
-          <span className="material-symbols-outlined">
-            {toast.type === "error" ? "error" : "check_circle"}
-          </span>
-          {toast.msg}
-        </div>
-      )}
-
-      <div className={styles.container}>
-
-        {/* ═══════════════════════════
-            HEADER
-        ═══════════════════════════ */}
-        <header className={styles.header}>
-          <div>
-            <h1 className={styles.title}>Log Your Meal</h1>
-            <p className={styles.subtitle}>
-              {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
-            </p>
-          </div>
-          <button
-            className={styles.manualEntryBtn}
-            onClick={() => setShowManual(true)}
-            id="log-manual-entry-btn"
-            aria-label="Open manual food entry"
+        {/* ── Global toast ── */}
+        {toast && (
+          <div
+            className={`${styles.toast} ${toast.type === "error" ? styles.toastError : ""}`}
+            role="status"
+            aria-live="polite"
           >
-            <span className="material-symbols-outlined">edit_note</span>
-            <span>Manual Entry</span>
-          </button>
-        </header>
-
-        {/* ═══════════════════════════
-            DAILY STATS HERO
-        ═══════════════════════════ */}
-        <section className={styles.statsHero} id="log-today-bar" aria-label="Today's nutrition summary">
-          {/* Ring */}
-          <CalRing pct={calPct} cals={todayTotals.cals} goal={calorieGoal} isOver={isOverGoal} />
-
-          {/* Macro bars */}
-          <div className={styles.macroBarsCol}>
-            <div className={styles.macroBarsTitle}>
-              <span className="material-symbols-outlined">bar_chart</span>
-              Today's Macros
-            </div>
-            <MacroBar label="Protein" value={todayTotals.protein} target={proteinGoal} color="var(--accent-green)"  />
-            <MacroBar label="Carbs"   value={todayTotals.carbs}   target={carbsGoal}   color="var(--accent-purple)" />
-            <MacroBar label="Fat"     value={todayTotals.fat}      target={fatGoal}     color="var(--fat)"           />
+            <span className="material-symbols-outlined">
+              {toast.type === "error" ? "error" : "check_circle"}
+            </span>
+            {toast.msg}
           </div>
+        )}
 
-          {/* Meal count + streak badge */}
-          <div className={styles.heroMeta}>
-            <div className={styles.heroMetaItem}>
-              <span className={styles.heroMetaVal}>{meals.length}</span>
-              <span className={styles.heroMetaKey}>Meals</span>
+        <div className={styles.container}>
+
+          {/* ═══════════════════════════
+              HEADER
+          ═══════════════════════════ */}
+          <header className={styles.header}>
+            <div>
+              <h1 className={styles.title}>Log Your Meal</h1>
+              <p className={styles.subtitle}>
+                {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+              </p>
             </div>
-            <div className={styles.heroMetaDivider} />
-            <div className={styles.heroMetaItem}>
-              <span className={styles.heroMetaVal} style={{ color: isOverGoal ? "var(--fat)" : "var(--accent-green)" }}>
-                {isOverGoal ? "Over" : "On track"}
-              </span>
-              <span className={styles.heroMetaKey}>Status</span>
-            </div>
-          </div>
-        </section>
-
-        {/* ═══════════════════════════
-            MEAL TYPE SELECTOR
-        ═══════════════════════════ */}
-        <nav className={styles.mealTypeNav} aria-label="Meal type">
-          {MEAL_TYPES.map((m) => {
-            const active = mealType === m.id;
-            return (
-              <button
-                key={m.id}
-                className={`${styles.mealTypeTab} ${active ? styles.mealTypeTabActive : ""}`}
-                style={active ? { background: m.gradient, borderColor: m.color + "55", color: m.color } : {}}
-                onClick={() => setMealType(m.id)}
-                id={`log-meal-${m.id}`}
-                aria-pressed={active}
-              >
-                <span className={styles.mealTypeTabIcon}>{m.icon}</span>
-                <span className={styles.mealTypeTabLabel}>{m.label}</span>
-                {active && <span className={styles.mealTypeTabIndicator} style={{ background: m.color }} />}
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* ═══════════════════════════
-            SNAP YOUR MEAL — full-width, above grid
-        ═══════════════════════════ */}
-        <section className={styles.scanSection} aria-label="AI meal scanner">
-          <input ref={fileRef} type="file" accept="image/*" capture="environment"
-            className={styles.fileInput} onChange={handleFile} id="log-file-input" />
-
-          {/* ── IDLE: compact horizontal CTA ── */}
-          {scanState === "idle" && (
-            <div
-              className={`${styles.scanBanner} ${isDragOver ? styles.scanBannerDrag : ""}`}
-              onClick={() => fileRef.current?.click()}
-              onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
-              onDragLeave={() => setIsDragOver(false)}
-              onDrop={handleDrop}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => e.key === "Enter" && fileRef.current?.click()}
-              aria-label="Tap to scan your meal with AI"
-              id="log-scan-zone"
-            >
-              {/* Ambient glow */}
-              <div className={styles.bannerGlow} aria-hidden />
-
-              {/* Icon ring */}
-              <div className={styles.bannerIconRing}>
-                <span className={`material-symbols-outlined ${styles.bannerIcon}`}>linked_camera</span>
-              </div>
-
-              {/* Copy */}
-              <div className={styles.bannerCopy}>
-                <div className={styles.bannerTitle}>Snap Your Meal</div>
-                <div className={styles.bannerSub}>AI identifies every ingredient &amp; macro in seconds</div>
-                <div className={styles.bannerDesktopHint}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 13 }}>upload_file</span>
-                  drag &amp; drop a photo, or tap to browse
-                </div>
-              </div>
-
-              {/* Badges */}
-              <div className={styles.bannerBadges}>
-                <span className={`${styles.scanBadge} ${styles.scanBadgeBlue}`}>
-                  <span className="material-symbols-outlined">bolt</span>Llama 4
-                </span>
-                <span className={`${styles.scanBadge} ${styles.scanBadgeGreen}`}>
-                  <span className="material-symbols-outlined">speed</span>&lt;5s
-                </span>
-              </div>
-
-              {/* CTA */}
-              <button
-                className={styles.bannerCta}
-                onClick={(e) => { e.stopPropagation(); fileRef.current?.click(); }}
-                id="log-scan-cta"
-                tabIndex={-1}
-                aria-hidden="true"
-              >
-                <span className="material-symbols-outlined">photo_camera</span>
-                <span className={styles.bannerCtaLabel}>Scan Meal</span>
-              </button>
-            </div>
-          )}
-
-          {/* ── ACTIVE: full scan zone (uploading / analysing) ── */}
-          {scanState !== "idle" && (
-            <div
-              className={`${styles.scanZone} ${isDragOver ? styles.scanZoneDragOver : ""}`}
-              onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
-              onDragLeave={() => setIsDragOver(false)}
-              onDrop={handleDrop}
-              id="log-scan-zone-active"
-            >
-              <div className={styles.scanGlow1} aria-hidden />
-              <div className={styles.scanGlow2} aria-hidden />
-
-              {preview && (
-                <div className={styles.previewWrap}>
-                  <img src={preview} alt="Your meal photo" className={styles.previewImg} />
-                  {(scanState === "uploading" || scanState === "analysing") && (
-                    <div className={styles.scanOverlay}>
-                      <div className={styles.scanBeam} aria-hidden />
-                      <div className={styles.scanPill}>
-                        <div className={styles.scanSpinner} />
-                        <span>{scanState === "uploading" ? "Uploading photo…" : "AI analyzing food…"}</span>
-                      </div>
-                    </div>
-                  )}
-                  {scanState === "error" && (
-                    <div className={styles.scanErrorOverlay}>
-                      <span className="material-symbols-outlined" style={{ fontSize: 40 }}>error_outline</span>
-                      <span style={{ fontWeight: 800 }}>{scanError}</span>
-                      <button className={styles.retryBtn} onClick={resetScan}>Try again</button>
-                    </div>
-                  )}
-                  {scanState === "done" && (
-                    <div className={styles.scanDone}>
-                      <span className={`material-symbols-outlined ${styles.scanDoneIcon}`}>check_circle</span>
-                      <span>Analysis complete!</span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ── RESULT CARD ── */}
-          {scanState === "done" && aiResult && (
-            <div className={styles.resultCard} role="region" aria-label="AI analysis result">
-              <div className={styles.resultHeader}>
-                <span className={styles.resultChip}>{activeMealMeta.label}</span>
-                <div className={styles.resultTitleRow}>
-                  <h3 className={styles.resultName}>{aiResult.name}</h3>
-                  <div className={styles.resultQtyWrap}>
-                    <button className={styles.qtyBtn} onClick={() => setScanQty(q => Math.max(0.5, q - 0.5))}>–</button>
-                    <span className={styles.qtyVal}>{scanQty}</span>
-                    <button className={styles.qtyBtn} onClick={() => setScanQty(q => q + 0.5)}>+</button>
-                  </div>
-                </div>
-              </div>
-
-              <div className={styles.resultMacroGrid}>
-                {([
-                  { label: "Calories", val: Math.round(aiResult.calories * scanQty),      icon: "local_fire_department",  color: "var(--text)",   bg: "var(--surface)" },
-                  { label: "Carbs",    val: Math.round(aiResult.carbsG * scanQty) + "g",    icon: "eco",                    color: "var(--text)",   bg: "var(--surface)" },
-                  { label: "Protein",  val: Math.round(aiResult.proteinG * scanQty) + "g",  icon: "egg_alt",                color: "var(--text)",   bg: "var(--surface)" },
-                  { label: "Fats",     val: Math.round(aiResult.fatG * scanQty) + "g",      icon: "water_drop",             color: "var(--text)",   bg: "var(--surface)" },
-                ] as const).map((m) => (
-                  <div key={m.label} className={styles.resultMacroCell2}>
-                    <div className={styles.macroCellIcon} style={{ color: m.color, background: m.bg }}>
-                      <span className="material-symbols-outlined">{m.icon}</span>
-                    </div>
-                    <div className={styles.macroCellData}>
-                      <span className={styles.macroCellLabel}>{m.label}</span>
-                      <span className={styles.macroCellVal}>{m.val}</span>
-                    </div>
-                    <span className="material-symbols-outlined" style={{ marginLeft: "auto", fontSize: "14px", color: "var(--text-muted)" }}>edit</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Health Score */}
-              <div className={styles.healthScoreRow}>
-                <div className={styles.healthScoreIcon}>
-                  <span className="material-symbols-outlined">favorite</span>
-                </div>
-                <div className={styles.healthScoreDetail}>
-                  <div className={styles.healthScoreTop}>
-                    <span className={styles.healthScoreLabel}>Health score</span>
-                    <span className={styles.healthScoreVal}>{Math.round(aiResult.confidence / 10)}/10</span>
-                  </div>
-                  <div className={styles.healthScoreBar}>
-                    <div className={styles.healthScoreFill} style={{ width: `${aiResult.confidence}%` }}></div>
-                  </div>
-                </div>
-              </div>
-
-              <div className={styles.resultActions2}>
-                <button className={styles.fixBtn} onClick={resetScan}>
-                  <span className="material-symbols-outlined">auto_awesome</span> Fix Results
-                </button>
-                <button className={styles.doneBtn} id="log-confirm-btn"
-                  onClick={handleLogScan} disabled={saving || !userId}>
-                  {saving ? "Saving..." : "Done"}
-                </button>
-              </div>
-            </div>
-          )}
-        </section>
-
-        {/* ═══════════════════════════
-            MAIN GRID
-        ═══════════════════════════ */}
-        <div className={styles.mainGrid}>
-
-          {/* ────────────────────────
-              LEFT — MEALS ONLY
-          ──────────────────────── */}
-          <div className={styles.leftCol}>
-            {/* ── Today's logged meals ── */}
-            <div className={styles.mealsCard}>
-              <div className={styles.mealsCardHeader}>
-                <span className="material-symbols-outlined" style={{ color: "var(--primary)" }}>receipt_long</span>
-                <strong>Today's Meals</strong>
-                {meals.length > 0 && (
-                  <span className={styles.mealsBadge}>{meals.length}</span>
-                )}
-                <span className={styles.mealsTotalCals} style={{ color: isOverGoal ? "var(--fat)" : "var(--primary)" }}>
-                  {Math.round(todayTotals.cals).toLocaleString()} kcal
-                </span>
-              </div>
-
-              {meals.length === 0 ? (
-                <div className={styles.emptyState} id="log-empty-state">
-                  <div className={styles.emptyIcon}>
-                    <span className="material-symbols-outlined">no_meals</span>
-                  </div>
-                  <p className={styles.emptyTitle}>Nothing logged yet</p>
-                  <p className={styles.emptySub}>Snap a photo or quick-add a food to start tracking</p>
-                </div>
-              ) : (
-                <div className={styles.mealsList} id="log-meal-list">
-                  {(meals as any[]).map((meal) => (
-                    <MealRow key={meal._id} meal={meal} onDelete={handleDelete} />
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* ────────────────────────
-              RIGHT — FOOD SEARCH
-          ──────────────────────── */}
-          <aside className={styles.rightCol}>
-
-            {/* Search header */}
-            <div className={styles.quickAddCard}>
-              <div className={styles.quickAddHeader}>
-                <span className="material-symbols-outlined" style={{ color: "var(--accent-yellow)" }}>flash_on</span>
-                <h3 className={styles.quickAddTitle}>Quick Add</h3>
-                <span className={styles.quickAddSub}>log in one tap</span>
-              </div>
-
-              {/* Search box */}
-              <div className={styles.searchWrap}>
-                <span className={`material-symbols-outlined ${styles.searchIcon}`}>search</span>
-                <input
-                  className={styles.searchInput}
-                  placeholder="Search foods…"
-                  value={query}
-                  onChange={(e) => { setQuery(e.target.value); setAddMode("search"); }}
-                  id="log-search-input"
-                  aria-label="Search foods"
-                />
-                {!query && (
-                  <button className={styles.searchClear} onClick={() => alert("Barcode scanning relies on native camera APIs. Try snapping a photo!")} aria-label="Scan barcode" title="Scan Barcode">
-                    <span className="material-symbols-outlined">barcode_scanner</span>
-                  </button>
-                )}
-                {query && (
-                  <button className={styles.searchClear} onClick={() => setQuery("")} aria-label="Clear search">
-                    <span className="material-symbols-outlined">close</span>
-                  </button>
-                )}
-              </div>
-
-              {/* Add Modes (Tabs) */}
-              <div className={styles.catTabs} style={{ display: "flex", gap: "8px", borderBottom: "1px solid var(--border)", paddingBottom: "12px", marginBottom: "4px" }}>
-                <button
-                  className={`${styles.catTab} ${addMode === "search" ? styles.catTabActive : ""}`}
-                  onClick={() => setAddMode("search")}
-                >
-                  Dataset
-                </button>
-                <button
-                  className={`${styles.catTab} ${addMode === "recent" ? styles.catTabActive : ""}`}
-                  onClick={() => setAddMode("recent")}
-                >
-                  Recent
-                </button>
-              </div>
-
-              {/* Category filter tabs */}
-              {addMode === "search" && (
-                <div className={styles.catTabs} role="tablist" aria-label="Food categories">
-                  {FOOD_CATEGORIES.map((cat) => (
-                    <button
-                      key={cat}
-                      role="tab"
-                      aria-selected={foodCat === cat}
-                      className={`${styles.catTab} ${foodCat === cat ? styles.catTabActive : ""}`}
-                      onClick={() => setFoodCat(cat)}
-                    >
-                      {cat}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Food cards */}
-              <div className={styles.foodGrid} role="list">
-                {addMode === "recent" ? (
-                  recentFoods.length === 0 ? (
-                    <div className={styles.noResults}>
-                      <span className="material-symbols-outlined">history</span>
-                      No recent meals
-                    </div>
-                  ) : (
-                    recentFoods.map((food: any) => (
-                      <div key={`recent-${food.name}`}>
-                        <FoodCard
-                          food={food}
-                          onSelect={() => setPendingFood(
-                            pendingFood?.name === food.name ? null : food
-                          )}
-                          isSelected={pendingFood?.name === food.name}
-                          adding={saving}
-                        />
-                        {pendingFood?.name === food.name && (
-                          <QuantityPicker
-                            food={food}
-                            onConfirm={handleConfirmAdd}
-                            onCancel={() => setPendingFood(null)}
-                            saving={saving}
-                          />
-                        )}
-                      </div>
-                    ))
-                  )
-                ) : (
-                  displayedFoods.length === 0 ? (
-                    <div className={styles.noResults}>
-                      <span className="material-symbols-outlined">search_off</span>
-                      No results for "{query}"
-                    </div>
-                  ) : (
-                    displayedFoods.map((food) => (
-                      <div key={food.name}>
-                        <FoodCard
-                          food={food}
-                          onSelect={() => setPendingFood(
-                            pendingFood?.name === food.name ? null : food
-                          )}
-                          isSelected={pendingFood?.name === food.name}
-                          adding={saving}
-                        />
-                        {/* Inline quantity picker — slides open below the selected card */}
-                        {pendingFood?.name === food.name && (
-                          <QuantityPicker
-                            food={food}
-                            onConfirm={handleConfirmAdd}
-                            onCancel={() => setPendingFood(null)}
-                            saving={saving}
-                          />
-                        )}
-                      </div>
-                    ))
-                  )
-                )}
-              </div>
-            </div>
-
-            {/* Manual entry CTA */}
             <button
-              className={styles.manualCard}
+              className={styles.manualEntryBtn}
               onClick={() => setShowManual(true)}
-              id="log-open-manual"
-              aria-label="Open manual food entry form"
+              id="log-manual-entry-btn"
+              aria-label="Open manual food entry"
             >
-              <div className={styles.manualCardGlow} aria-hidden />
-              <span className={`material-symbols-outlined ${styles.manualCardIcon}`}>edit_note</span>
-              <div className={styles.manualCardText}>
-                <span className={styles.manualCardTitle}>Custom Food Entry</span>
-                <span className={styles.manualCardSub}>Enter exact nutrition data</span>
-              </div>
-              <span className="material-symbols-outlined" style={{ color: "var(--text-muted)", marginLeft: "auto", fontSize: 20 }}>
-                arrow_forward_ios
-              </span>
+              <span className="material-symbols-outlined">edit_note</span>
+              <span>Manual Entry</span>
             </button>
+          </header>
 
-            {/* Active meal type indicator */}
-            <div
-              className={styles.activeTypeBanner}
-              style={{ background: activeMealMeta.gradient, borderColor: activeMealMeta.color + "44" }}
-            >
-              <span style={{ fontSize: 22 }}>{activeMealMeta.icon}</span>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: 13, color: activeMealMeta.color }}>{activeMealMeta.label}</div>
-                <div style={{ fontSize: 12, color: "var(--text-muted)" }}>Foods will be logged here</div>
+          {/* ═══════════════════════════
+              DAILY STATS HERO
+          ═══════════════════════════ */}
+          <section className={styles.statsHero} id="log-today-bar" aria-label="Today's nutrition summary">
+            <CalRing pct={calPct} cals={todayTotals.cals} goal={calorieGoal} isOver={isOverGoal} />
+            <div className={styles.macroBarsCol}>
+              <div className={styles.macroBarsTitle}>
+                <span className="material-symbols-outlined">bar_chart</span>
+                Today's Macros
+              </div>
+              <MacroBar label="Protein" value={todayTotals.protein} target={proteinGoal} color="var(--accent-green)"  />
+              <MacroBar label="Carbs"   value={todayTotals.carbs}   target={carbsGoal}   color="var(--accent-purple)" />
+              <MacroBar label="Fat"     value={todayTotals.fat}      target={fatGoal}     color="var(--fat)"           />
+            </div>
+            <div className={styles.heroMeta}>
+              <div className={styles.heroMetaItem}>
+                <span className={styles.heroMetaVal}>{meals.length}</span>
+                <span className={styles.heroMetaKey}>Meals</span>
+              </div>
+              <div className={styles.heroMetaDivider} />
+              <div className={styles.heroMetaItem}>
+                <span className={styles.heroMetaVal} style={{ color: isOverGoal ? "var(--fat)" : "var(--accent-green)" }}>
+                  {isOverGoal ? "Over" : "On track"}
+                </span>
+                <span className={styles.heroMetaKey}>Status</span>
               </div>
             </div>
-          </aside>
-        </div>
-      </div>
+          </section>
 
-      {/* ═════════════════════════════════════════════
-          MANUAL ENTRY MODAL
-      ═════════════════════════════════════════════ */}
-      {showManual && (
-        <div
-          className={styles.backdrop}
-          onClick={() => setShowManual(false)}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Manual food entry"
-          id="log-manual-modal"
-        >
-          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+          {/* ── Meal type selector ── */}
+          <nav className={styles.mealTypeNav} aria-label="Meal type">
+            {MEAL_TYPES.map((m) => {
+              const active = mealType === m.id;
+              return (
+                <button
+                  key={m.id}
+                  className={`${styles.mealTypeTab} ${active ? styles.mealTypeTabActive : ""}`}
+                  style={active ? { background: m.gradient, borderColor: m.color + "55", color: m.color } : {}}
+                  onClick={() => setMealType(m.id)}
+                  id={`log-meal-${m.id}`}
+                  aria-pressed={active}
+                >
+                  <span className={styles.mealTypeTabIcon}>{m.icon}</span>
+                  <span className={styles.mealTypeTabLabel}>{m.label}</span>
+                </button>
+              );
+            })}
+          </nav>
 
-            {/* Modal header */}
-            <div className={styles.modalHeader}>
-              <div className={styles.modalHeaderGlow} aria-hidden />
-              <div>
-                <h2 className={styles.modalTitle}>Log Food Manually</h2>
-                <p className={styles.modalSub}>Enter exact nutritional data</p>
-              </div>
-              <button className={styles.modalCloseBtn} onClick={() => setShowManual(false)} aria-label="Close modal">
-                <span className="material-symbols-outlined">close</span>
-              </button>
-            </div>
-
-            <form onSubmit={handleManualSubmit} className={styles.modalBody}>
-
-              {/* Inline meal type in modal */}
-              <div className={styles.modalMealRow} role="group" aria-label="Select meal type">
-                {MEAL_TYPES.map((m) => {
-                  const active = mealType === m.id;
-                  return (
-                    <button
-                      key={m.id}
-                      type="button"
-                      className={`${styles.modalMealBtn} ${active ? styles.modalMealBtnActive : ""}`}
-                      style={active ? { borderColor: m.color + "77", background: m.gradient, color: m.color } : {}}
-                      onClick={() => setMealType(m.id)}
-                      aria-pressed={active}
-                    >
-                      {m.icon} {m.label}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Name */}
-              <div className={styles.field}>
-                <label className={styles.fieldLabel} htmlFor="manual-name">Food Name *</label>
-                <input id="manual-name" className={styles.fieldInput}
-                  placeholder="e.g. Grilled Chicken Salad"
-                  value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  required autoComplete="off" />
-              </div>
-
-              {/* Serving */}
-              <div className={styles.field}>
-                <label className={styles.fieldLabel} htmlFor="manual-serving">Serving Size</label>
-                <input id="manual-serving" className={styles.fieldInput}
-                  placeholder="e.g. 1 bowl, 200g"
-                  value={form.servingSize} onChange={(e) => setForm((f) => ({ ...f, servingSize: e.target.value }))} />
-              </div>
-
-              {/* Macro grid */}
-              <div className={styles.macroInputGrid}>
-                {[
-                  { key: "calories", label: "Calories", unit: "kcal", color: "var(--primary)",        id: "manual-cals"    },
-                  { key: "protein",  label: "Protein",  unit: "g",    color: "var(--accent-green)",   id: "manual-protein" },
-                  { key: "carbs",    label: "Carbs",    unit: "g",    color: "var(--accent-purple)",  id: "manual-carbs"   },
-                  { key: "fat",      label: "Fat",      unit: "g",    color: "var(--fat)",             id: "manual-fat"     },
-                ].map(({ key, label, unit, color, id }) => (
-                  <div key={key} className={styles.macroInputCell}>
-                    <label className={styles.macroInputLabel} htmlFor={id} style={{ color }}>{label}</label>
-                    <div className={styles.macroInputWrap} style={{ "--macro-color": color } as any}>
-                      <input id={id} type="number" min="0" step="0.1"
-                        className={styles.macroInput}
-                        placeholder="0"
-                        value={form[key as keyof ManualForm]}
-                        onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))} />
-                      <span className={styles.macroInputUnit}>{unit}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Live preview strip */}
-              {(parseFloat(form.calories) > 0 || parseFloat(form.protein) > 0) && (
-                <div className={styles.livePreview} aria-live="polite" aria-label="Nutritional preview">
-                  <span className={styles.livePreviewLabel}>Preview</span>
-                  <span style={{ fontWeight: 900, color: "var(--primary)" }}>{Math.round(parseFloat(form.calories)||0)} kcal</span>
-                  <span className={styles.dot}>·</span>
-                  <span style={{ color: "var(--accent-green)",  fontWeight: 700 }}>{Math.round(parseFloat(form.protein)||0)}g P</span>
-                  <span style={{ color: "var(--accent-purple)", fontWeight: 700 }}>{Math.round(parseFloat(form.carbs)||0)}g C</span>
-                  <span style={{ color: "var(--fat)",           fontWeight: 700 }}>{Math.round(parseFloat(form.fat)||0)}g F</span>
+          {/* ── Scan zone ── */}
+          <section className={styles.scanSection} aria-label="AI meal scanner">
+            <input ref={fileRef} type="file" accept="image/*" capture="environment"
+              className={styles.fileInput} onChange={handleFile} id="log-file-input" />
+            
+            {scanState === "idle" && (
+              <div
+                className={`${styles.scanBanner} ${isDragOver ? styles.scanBannerDrag : ""}`}
+                onClick={() => fileRef.current?.click()}
+                onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+                onDragLeave={() => setIsDragOver(false)}
+                onDrop={handleDrop}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === "Enter" && fileRef.current?.click()}
+                aria-label="Tap to scan your meal with AI"
+                id="log-scan-zone"
+              >
+                <div className={styles.bannerGlow} aria-hidden />
+                <div className={styles.bannerIconRing}>
+                  <span className={`material-symbols-outlined ${styles.bannerIcon}`}>linked_camera</span>
                 </div>
-              )}
-
-              {/* Actions */}
-              <div className={styles.modalFooter}>
-                <button type="button" className={styles.cancelBtn}
-                  onClick={() => { setShowManual(false); setForm(emptyForm); }}>
-                  Cancel
-                </button>
-                <button type="submit" className={styles.primaryBtn}
-                  disabled={saving || !userId || !form.name} id="log-manual-submit">
-                  {saving
-                    ? <><div className={styles.spinSm} />Saving…</>
-                    : <><span className="material-symbols-outlined">add_circle</span>Log Meal</>
-                  }
-                </button>
+                <div className={styles.bannerCopy}>
+                  <div className={styles.bannerTitle}>Snap Your Meal</div>
+                  <div className={styles.bannerSub}>AI identifies every ingredient &amp; macro in seconds</div>
+                </div>
+                <div className={styles.bannerBadges}>
+                  <span className={`${styles.scanBadge} ${styles.scanBadgeBlue}`}>Llama 4</span>
+                  <span className={`${styles.scanBadge} ${styles.scanBadgeGreen}`}>&lt;5s</span>
+                </div>
               </div>
-            </form>
+            )}
+
+            {scanState !== "idle" && (
+                <div className={styles.scanZone} id="log-scan-zone-active">
+                    {preview && (
+                        <div className={styles.previewWrap}>
+                            <img src={preview} alt="Meal preview" className={styles.previewImg} />
+                            {(scanState === "uploading" || scanState === "analysing") && (
+                                <div className={styles.scanOverlay}>
+                                    <div className={styles.scanSpinner} />
+                                    <span>{scanState === "uploading" ? "Uploading..." : "AI parsing..."}</span>
+                                </div>
+                            )}
+                            {scanState === "error" && (
+                                <div className={styles.scanErrorOverlay}>
+                                    <span>{scanError}</span>
+                                    <button onClick={resetScan}>Retry</button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {scanState === "done" && aiResult && (
+                <div className={styles.resultCard}>
+                    <h3>{aiResult.name}</h3>
+                    <div className={styles.resultQtyWrap}>
+                        <button onClick={() => setScanQty(q => Math.max(0.5, q - 0.5))}>–</button>
+                        <span>{scanQty}</span>
+                        <button onClick={() => setScanQty(q => q + 0.5)}>+</button>
+                    </div>
+                    <div className={styles.resultMacrosRow}>
+                        <div>{Math.round(aiResult.calories * scanQty)} kcal</div>
+                        <div>{Math.round(aiResult.proteinG * scanQty)}g P</div>
+                    </div>
+                    <button className={styles.scanLogBtn} onClick={handleLogScan} disabled={saving}>
+                        {saving ? "Logging..." : "Log Meal"}
+                    </button>
+                    <button onClick={resetScan}>Cancel</button>
+                </div>
+            )}
+          </section>
+
+          {/* ── Main grid ── */}
+          <div className={styles.mainGrid}>
+            <div className={styles.leftCol}>
+                <div className={styles.mealsCard}>
+                    <div className={styles.mealsCardHeader}>
+                        <strong>Today's Meals</strong>
+                    </div>
+                    <div className={styles.mealsList}>
+                        {meals.map((m: any) => (
+                            <MealRow key={m.id} meal={m} onDelete={handleDelete} />
+                        ))}
+                    </div>
+                </div>
+            </div>
+            <aside className={styles.rightCol}>
+                <div className={styles.searchWrap}>
+                    <input 
+                        placeholder="Search foods..." 
+                        value={query} 
+                        onChange={(e) => setQuery(e.target.value)} 
+                    />
+                </div>
+                <div className={styles.foodGrid}>
+                    {displayedFoods.map((f) => (
+                        <div key={f.name}>
+                            <FoodCard 
+                                food={f} 
+                                onSelect={() => setPendingFood(pendingFood?.name === f.name ? null : f)}
+                                isSelected={pendingFood?.name === f.name}
+                                adding={saving}
+                            />
+                            {pendingFood?.name === f.name && (
+                                <QuantityPicker 
+                                    food={f}
+                                    onConfirm={handleConfirmAdd}
+                                    onCancel={() => setPendingFood(null)}
+                                    saving={saving}
+                                />
+                            )}
+                        </div>
+                    ))}
+                </div>
+            </aside>
           </div>
         </div>
-      )}
 
-      {/* ── Mobile sticky scan FAB ── */}
-      <button
-        className={styles.mobileFab}
-        onClick={() => fileRef.current?.click()}
-        aria-label="Scan meal with camera"
-        id="log-mobile-fab"
-      >
-        <span className="material-symbols-outlined">linked_camera</span>
-        <span className={styles.mobileFabLabel}>Scan Meal</span>
-      </button>
-    </div>
+        {showManual && (
+            <div className={styles.backdrop} onClick={() => setShowManual(false)}>
+                <div className={styles.modal} onClick={e => e.stopPropagation()}>
+                    <form onSubmit={handleManualSubmit}>
+                        <input placeholder="Name" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required />
+                        <input placeholder="Kcal" type="number" value={form.calories} onChange={e => setForm({...form, calories: e.target.value})} required />
+                        <button type="submit" disabled={saving}>Log</button>
+                    </form>
+                </div>
+            </div>
+        )}
+      </div>
+    </AuthGuard>
   );
 }

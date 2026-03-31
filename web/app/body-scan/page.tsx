@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { listPhotos, savePhoto, removePhoto } from "@/lib/actions/bodyPhotos";
 import { Navbar } from "@/components/Navbar";
 import styles from "./BodyScan.module.css";
+import { AuthGuard } from "@/components/AuthGuard";
 
 /* ── Types ── */
 interface BodyAnalysis {
@@ -230,327 +231,313 @@ export default function BodyScanPage() {
     }
   };
 
-  if (!user) {
-    return (
+  return (
+    <AuthGuard>
       <div className={styles.page}>
         <Navbar />
-        <div className={styles.authPrompt}>
-          <span className="material-symbols-outlined" style={{ fontSize: 48, color: "var(--primary)" }}>
-            fitness_center
-          </span>
-          <h2>Sign in to use Body Scan</h2>
-          <p>Track your weekly progress with AI-powered body analysis</p>
-          <a href="/login" className={styles.loginBtn}>Sign In</a>
-        </div>
-      </div>
-    );
-  }
+        <div className={styles.container}>
 
-  return (
-    <div className={styles.page}>
-      <Navbar />
-      <div className={styles.container}>
-
-        {/* Header */}
-        <div className={styles.header}>
-          <div>
-            <h1 className={styles.title}>
-              <span className="material-symbols-outlined" style={{ verticalAlign: "middle", marginRight: 8, color: "var(--primary)" }}>
-                body_system
-              </span>
-              Body Progress Analyzer
-            </h1>
-            <p className={styles.subtitle}>
-              AI-powered weekly physique check-ins — track your transformation over 7 days
-            </p>
-          </div>
-          <div className={styles.tabGroup}>
-            <button
-              className={`${styles.tab} ${activeTab === "scan" ? styles.tabActive : ""}`}
-              onClick={() => setActiveTab("scan")}
-              id="body-tab-scan"
-            >
-              <span className="material-symbols-outlined">photo_camera</span>
-              New Scan
-            </button>
-            <button
-              className={`${styles.tab} ${activeTab === "history" ? styles.tabActive : ""}`}
-              onClick={() => setActiveTab("history")}
-              id="body-tab-history"
-            >
-              <span className="material-symbols-outlined">history</span>
-              History {photos && photos.length > 0 && <span className={styles.badge}>{photos.length}</span>}
-            </button>
-          </div>
-        </div>
-
-        {activeTab === "scan" && (
-          <div className={styles.scanGrid}>
-            {/* Upload panel */}
-            <div className={styles.uploadPanel}>
-              <div
-                className={`${styles.dropZone} ${previewUrl ? styles.dropZoneHasImage : ""}`}
-                onDrop={handleDrop}
-                onDragOver={(e) => e.preventDefault()}
-                onClick={() => !previewUrl && fileRef.current?.click()}
-                id="body-drop-zone"
+          {/* Header */}
+          <div className={styles.header}>
+            <div>
+              <h1 className={styles.title}>
+                <span className="material-symbols-outlined" style={{ verticalAlign: "middle", marginRight: 8, color: "var(--primary)" }}>
+                  body_system
+                </span>
+                Body Progress Analyzer
+              </h1>
+              <p className={styles.subtitle}>
+                AI-powered weekly physique check-ins — track your transformation over 7 days
+              </p>
+            </div>
+            <div className={styles.tabGroup}>
+              <button
+                className={`${styles.tab} ${activeTab === "scan" ? styles.tabActive : ""}`}
+                onClick={() => setActiveTab("scan")}
+                id="body-tab-scan"
               >
-                {previewUrl ? (
-                  <div className={styles.previewWrapper}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={previewUrl} alt="Body photo preview" className={styles.previewImg} />
-                    <button
-                      className={styles.changePhotoBtn}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPreviewUrl(null);
-                        setPreviewBase64("");
-                        setAnalysis(null);
-                        setSaved(false);
-                        fileRef.current?.click();
-                      }}
-                      id="body-change-photo"
-                    >
-                      <span className="material-symbols-outlined">photo_camera</span>
-                      Change Photo
-                    </button>
-                  </div>
-                ) : (
-                  <div className={styles.dropPlaceholder}>
-                    <div className={styles.dropIcon}>
-                      <span className="material-symbols-outlined">add_photo_alternate</span>
+                <span className="material-symbols-outlined">photo_camera</span>
+                New Scan
+              </button>
+              <button
+                className={`${styles.tab} ${activeTab === "history" ? styles.tabActive : ""}`}
+                onClick={() => setActiveTab("history")}
+                id="body-tab-history"
+              >
+                <span className="material-symbols-outlined">history</span>
+                History {photos && photos.length > 0 && <span className={styles.badge}>{photos.length}</span>}
+              </button>
+            </div>
+          </div>
+
+          {activeTab === "scan" && (
+            <div className={styles.scanGrid}>
+              {/* Upload panel */}
+              <div className={styles.uploadPanel}>
+                <div
+                  className={`${styles.dropZone} ${previewUrl ? styles.dropZoneHasImage : ""}`}
+                  onDrop={handleDrop}
+                  onDragOver={(e) => e.preventDefault()}
+                  onClick={() => !previewUrl && fileRef.current?.click()}
+                  id="body-drop-zone"
+                >
+                  {previewUrl ? (
+                    <div className={styles.previewWrapper}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={previewUrl} alt="Body photo preview" className={styles.previewImg} />
+                      <button
+                        className={styles.changePhotoBtn}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPreviewUrl(null);
+                          setPreviewBase64("");
+                          setAnalysis(null);
+                          setSaved(false);
+                          fileRef.current?.click();
+                        }}
+                        id="body-change-photo"
+                      >
+                        <span className="material-symbols-outlined">photo_camera</span>
+                        Change Photo
+                      </button>
                     </div>
-                    <p className={styles.dropTitle}>Upload your progress photo</p>
-                    <p className={styles.dropSubtitle}>Drag & drop or tap to select • JPG, PNG, WebP</p>
-                    <p className={styles.dropTip}>💡 Stand in consistent lighting for best analysis</p>
+                  ) : (
+                    <div className={styles.dropPlaceholder}>
+                      <div className={styles.dropIcon}>
+                        <span className="material-symbols-outlined">add_photo_alternate</span>
+                      </div>
+                      <p className={styles.dropTitle}>Upload your progress photo</p>
+                      <p className={styles.dropSubtitle}>Drag & drop or tap to select • JPG, PNG, WebP</p>
+                      <p className={styles.dropTip}>💡 Stand in consistent lighting for best analysis</p>
+                    </div>
+                  )}
+                </div>
+
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: "none" }}
+                  onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+                  id="body-file-input"
+                />
+
+                {/* Notes */}
+                {previewUrl && (
+                  <div className={styles.notesSection}>
+                    <label className={styles.notesLabel}>Personal notes (optional)</label>
+                    <textarea
+                      className={styles.notesInput}
+                      placeholder="How are you feeling? Any measurements to record?"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      rows={3}
+                      id="body-notes"
+                    />
+                  </div>
+                )}
+
+                {error && (
+                  <div className={styles.errorBanner}>
+                    <span className="material-symbols-outlined">error</span>
+                    {error}
+                  </div>
+                )}
+
+                {previewUrl && !analysis && (
+                  <button
+                    className={styles.analyzeBtn}
+                    onClick={analyzePhoto}
+                    disabled={analyzing}
+                    id="body-analyze-btn"
+                  >
+                    {analyzing ? (
+                      <>
+                        <span className={styles.spinnerIcon}>⟳</span>
+                        Analyzing with AI…
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined">psychology</span>
+                        Analyze with AI
+                      </>
+                    )}
+                  </button>
+                )}
+
+                {analysis && !saved && (
+                  <button
+                    className={styles.saveBtn}
+                    onClick={handleSave}
+                    disabled={saving}
+                    id="body-save-btn"
+                  >
+                    {saving ? (
+                      "Saving…"
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined">bookmark</span>
+                        Save Check-in
+                      </>
+                    )}
+                  </button>
+                )}
+
+                {saved && (
+                  <div className={styles.savedBanner}>
+                    <span className="material-symbols-outlined">check_circle</span>
+                    Check-in saved to your history!
                   </div>
                 )}
               </div>
 
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                style={{ display: "none" }}
-                onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
-                id="body-file-input"
-              />
+              {/* Analysis result */}
+              <div className={styles.analysisPanel}>
+                {analyzing && (
+                  <div className={styles.analyzeLoading}>
+                    <div className={styles.pulseRing} />
+                    <span className="material-symbols-outlined" style={{ fontSize: 40, color: "var(--primary)" }}>
+                      psychology
+                    </span>
+                    <p>AI is analyzing your physique…</p>
+                    <p style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 4 }}>
+                      Assessing body composition, muscle definition & posture
+                    </p>
+                  </div>
+                )}
 
-              {/* Notes */}
-              {previewUrl && (
-                <div className={styles.notesSection}>
-                  <label className={styles.notesLabel}>Personal notes (optional)</label>
-                  <textarea
-                    className={styles.notesInput}
-                    placeholder="How are you feeling? Any measurements to record?"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    rows={3}
-                    id="body-notes"
-                  />
-                </div>
-              )}
+                {!analyzing && !analysis && (
+                  <div className={styles.analysisEmpty}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 56, color: "var(--border)", display: "block", marginBottom: 16 }}>
+                      body_system
+                    </span>
+                    <p style={{ color: "var(--text-muted)", fontSize: 15 }}>
+                      Upload a photo and tap <strong style={{ color: "var(--text-secondary)" }}>Analyze with AI</strong> to get your body composition report
+                    </p>
+                  </div>
+                )}
 
-              {error && (
-                <div className={styles.errorBanner}>
-                  <span className="material-symbols-outlined">error</span>
-                  {error}
-                </div>
-              )}
-
-              {previewUrl && !analysis && (
-                <button
-                  className={styles.analyzeBtn}
-                  onClick={analyzePhoto}
-                  disabled={analyzing}
-                  id="body-analyze-btn"
-                >
-                  {analyzing ? (
-                    <>
-                      <span className={styles.spinnerIcon}>⟳</span>
-                      Analyzing with AI…
-                    </>
-                  ) : (
-                    <>
-                      <span className="material-symbols-outlined">psychology</span>
-                      Analyze with AI
-                    </>
-                  )}
-                </button>
-              )}
-
-              {analysis && !saved && (
-                <button
-                  className={styles.saveBtn}
-                  onClick={handleSave}
-                  disabled={saving}
-                  id="body-save-btn"
-                >
-                  {saving ? (
-                    "Saving…"
-                  ) : (
-                    <>
-                      <span className="material-symbols-outlined">bookmark</span>
-                      Save Check-in
-                    </>
-                  )}
-                </button>
-              )}
-
-              {saved && (
-                <div className={styles.savedBanner}>
-                  <span className="material-symbols-outlined">check_circle</span>
-                  Check-in saved to your history!
-                </div>
-              )}
-            </div>
-
-            {/* Analysis result */}
-            <div className={styles.analysisPanel}>
-              {analyzing && (
-                <div className={styles.analyzeLoading}>
-                  <div className={styles.pulseRing} />
-                  <span className="material-symbols-outlined" style={{ fontSize: 40, color: "var(--primary)" }}>
-                    psychology
-                  </span>
-                  <p>AI is analyzing your physique…</p>
-                  <p style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 4 }}>
-                    Assessing body composition, muscle definition & posture
-                  </p>
-                </div>
-              )}
-
-              {!analyzing && !analysis && (
-                <div className={styles.analysisEmpty}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 56, color: "var(--border)", display: "block", marginBottom: 16 }}>
-                    body_system
-                  </span>
-                  <p style={{ color: "var(--text-muted)", fontSize: 15 }}>
-                    Upload a photo and tap <strong style={{ color: "var(--text-secondary)" }}>Analyze with AI</strong> to get your body composition report
-                  </p>
-                </div>
-              )}
-
-              {analysis && <AnalysisResult analysis={analysis} />}
-            </div>
-          </div>
-        )}
-
-        {activeTab === "history" && (
-          <div className={styles.historySection}>
-            {!photos || photos.length === 0 ? (
-              <div className={styles.emptyHistory}>
-                <span className="material-symbols-outlined" style={{ fontSize: 64, color: "var(--border)" }}>
-                  photo_library
-                </span>
-                <h3>No check-ins yet</h3>
-                <p>Start your weekly tracking journey!</p>
-                <button
-                  className={styles.analyzeBtn}
-                  style={{ marginTop: 16 }}
-                  onClick={() => setActiveTab("scan")}
-                >
-                  <span className="material-symbols-outlined">add_photo_alternate</span>
-                  Add First Check-in
-                </button>
+                {analysis && <AnalysisResult analysis={analysis} />}
               </div>
-            ) : (
-              <>
-                {/* Timeline strip */}
-                <div className={styles.timeline}>
-                  {photos.map((photo, i) => {
-                    const a = parsedAnalysis(photo);
+            </div>
+          )}
+
+          {activeTab === "history" && (
+            <div className={styles.historySection}>
+              {!photos || photos.length === 0 ? (
+                <div className={styles.emptyHistory}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 64, color: "var(--border)" }}>
+                    photo_library
+                  </span>
+                  <h3>No check-ins yet</h3>
+                  <p>Start your weekly tracking journey!</p>
+                  <button
+                    className={styles.analyzeBtn}
+                    style={{ marginTop: 16 }}
+                    onClick={() => setActiveTab("scan")}
+                  >
+                    <span className="material-symbols-outlined">add_photo_alternate</span>
+                    Add First Check-in
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {/* Timeline strip */}
+                  <div className={styles.timeline}>
+                    {photos.map((photo, i) => {
+                      const a = parsedAnalysis(photo);
+                      return (
+                        <div
+                          key={photo.id}
+                          className={`${styles.timelineItem} ${selectedPhoto?.id === photo.id ? styles.timelineItemActive : ""}`}
+                          onClick={() => openHistory(photo)}
+                          id={`body-history-${i}`}
+                        >
+                          <div className={styles.timelinePhoto}>
+                            {photo.imageData ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={`data:image/jpeg;base64,${photo.imageData}`}
+                                alt={photo.weekLabel ?? photo.date}
+                                className={styles.thumbImg}
+                              />
+                            ) : (
+                              <div className={styles.thumbPlaceholder}>
+                                <span className="material-symbols-outlined">person</span>
+                              </div>
+                            )}
+                            {a && (
+                              <div className={styles.thumbScore} style={{
+                                background: a.progressScore >= 70 ? "var(--accent-green)" : a.progressScore >= 50 ? "var(--primary)" : "var(--accent-yellow)"
+                              }}>
+                                {a.progressScore}
+                              </div>
+                            )}
+                          </div>
+                          <div className={styles.timelineMeta}>
+                            <span className={styles.timelineWeek}>{photo.weekLabel ?? `Check-in`}</span>
+                            <span className={styles.timelineDate}>
+                              {new Date(photo.date).toLocaleDateString("en", { month: "short", day: "numeric" })}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Selected detail */}
+                  {selectedPhoto && (() => {
+                    const a = parsedAnalysis(selectedPhoto);
                     return (
-                      <div
-                        key={photo.id}
-                        className={`${styles.timelineItem} ${selectedPhoto?.id === photo.id ? styles.timelineItemActive : ""}`}
-                        onClick={() => openHistory(photo)}
-                        id={`body-history-${i}`}
-                      >
-                        <div className={styles.timelinePhoto}>
-                          {photo.imageData ? (
+                      <div className={styles.detailCard}>
+                        <div className={styles.detailHeader}>
+                          <div>
+                            <h2 className={styles.detailTitle}>{selectedPhoto.weekLabel ?? selectedPhoto.date}</h2>
+                            <p className={styles.detailDate}>
+                              {new Date(selectedPhoto.date).toLocaleDateString("en", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+                            </p>
+                            {selectedPhoto.notes && (
+                              <p className={styles.detailNotes}>📓 {selectedPhoto.notes}</p>
+                            )}
+                          </div>
+                          <button
+                            className={styles.deleteBtn}
+                            onClick={() => handleDelete(selectedPhoto)}
+                            aria-label="Delete check-in"
+                            id="body-delete-btn"
+                          >
+                            <span className="material-symbols-outlined">delete</span>
+                          </button>
+                        </div>
+
+                        <div className={styles.detailGrid}>
+                          {selectedPhoto.imageData && (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
-                              src={`data:image/jpeg;base64,${photo.imageData}`}
-                              alt={photo.weekLabel ?? photo.date}
-                              className={styles.thumbImg}
+                              src={`data:image/jpeg;base64,${selectedPhoto.imageData}`}
+                              alt={selectedPhoto.weekLabel ?? "Progress photo"}
+                              className={styles.detailImg}
                             />
-                          ) : (
-                            <div className={styles.thumbPlaceholder}>
-                              <span className="material-symbols-outlined">person</span>
-                            </div>
                           )}
-                          {a && (
-                            <div className={styles.thumbScore} style={{
-                              background: a.progressScore >= 70 ? "var(--accent-green)" : a.progressScore >= 50 ? "var(--primary)" : "var(--accent-yellow)"
-                            }}>
-                              {a.progressScore}
-                            </div>
+                          {a ? <AnalysisResult analysis={a} /> : (
+                            <p style={{ color: "var(--text-muted)", padding: 24 }}>No AI analysis for this entry.</p>
                           )}
-                        </div>
-                        <div className={styles.timelineMeta}>
-                          <span className={styles.timelineWeek}>{photo.weekLabel ?? `Check-in`}</span>
-                          <span className={styles.timelineDate}>
-                            {new Date(photo.date).toLocaleDateString("en", { month: "short", day: "numeric" })}
-                          </span>
                         </div>
                       </div>
                     );
-                  })}
-                </div>
+                  })()}
 
-                {/* Selected detail */}
-                {selectedPhoto && (() => {
-                  const a = parsedAnalysis(selectedPhoto);
-                  return (
-                    <div className={styles.detailCard}>
-                      <div className={styles.detailHeader}>
-                        <div>
-                          <h2 className={styles.detailTitle}>{selectedPhoto.weekLabel ?? selectedPhoto.date}</h2>
-                          <p className={styles.detailDate}>
-                            {new Date(selectedPhoto.date).toLocaleDateString("en", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
-                          </p>
-                          {selectedPhoto.notes && (
-                            <p className={styles.detailNotes}>📓 {selectedPhoto.notes}</p>
-                          )}
-                        </div>
-                        <button
-                          className={styles.deleteBtn}
-                          onClick={() => handleDelete(selectedPhoto)}
-                          aria-label="Delete check-in"
-                          id="body-delete-btn"
-                        >
-                          <span className="material-symbols-outlined">delete</span>
-                        </button>
-                      </div>
-
-                      <div className={styles.detailGrid}>
-                        {selectedPhoto.imageData && (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={`data:image/jpeg;base64,${selectedPhoto.imageData}`}
-                            alt={selectedPhoto.weekLabel ?? "Progress photo"}
-                            className={styles.detailImg}
-                          />
-                        )}
-                        {a ? <AnalysisResult analysis={a} /> : (
-                          <p style={{ color: "var(--text-muted)", padding: 24 }}>No AI analysis for this entry.</p>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* Progress trend (if 2+ photos) */}
-                {photos.length >= 2 && (
-                  <ProgressTrend photos={photos} parsedAnalysis={parsedAnalysis} />
-                )}
-              </>
-            )}
-          </div>
-        )}
+                  {/* Progress trend (if 2+ photos) */}
+                  {photos.length >= 2 && (
+                    <ProgressTrend photos={photos} parsedAnalysis={parsedAnalysis} />
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </AuthGuard>
   );
 }
 

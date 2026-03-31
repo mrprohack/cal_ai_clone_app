@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { listPlans as listSavedPlans, savePlan, togglePin, removePlan } from "@/lib/actions/mealPlans";
 import { Navbar } from "@/components/Navbar";
 import styles from "./MealPlan.module.css";
+import { AuthGuard } from "@/components/AuthGuard";
 
 /* ── Types ── */
 interface MealItem {
@@ -251,266 +252,252 @@ export default function MealPlanPage() {
     fetchPlans();
   };
 
-  if (!user) {
-    return (
+  return (
+    <AuthGuard>
       <div className={styles.page}>
         <Navbar />
-        <div className={styles.authPrompt}>
-          <span className="material-symbols-outlined" style={{ fontSize: 48, color: "var(--primary)" }}>
-            restaurant_menu
-          </span>
-          <h2>Sign in to use Meal Planner</h2>
-          <p>Generate personalized 7-day meal plans powered by AI</p>
-          <a href="/login" className={styles.loginBtn}>Sign In</a>
-        </div>
-      </div>
-    );
-  }
+        <div className={styles.container}>
 
-  return (
-    <div className={styles.page}>
-      <Navbar />
-      <div className={styles.container}>
-
-        {/* Header */}
-        <div className={styles.header}>
-          <div>
-            <h1 className={styles.title}>
-              <span className="material-symbols-outlined" style={{ verticalAlign: "middle", marginRight: 8, color: "var(--primary)" }}>
-                restaurant_menu
-              </span>
-              AI Meal Planner
-            </h1>
-            <p className={styles.subtitle}>
-              Generate a complete, personalized 7-day meal plan tailored to your macros
-            </p>
-          </div>
-
-          {savedPlans && savedPlans.length > 0 && (
-            <button
-              className={styles.savedPlansBtn}
-              onClick={() => setActiveTab("saved")}
-              id="meal-plan-saved-btn"
-            >
-              <span className="material-symbols-outlined">history</span>
-              Saved Plans ({savedPlans.length})
-            </button>
-          )}
-        </div>
-
-        {/* Config panel */}
-        <div className={styles.configCard}>
-          <div className={styles.configHeader}>
-            <span className="material-symbols-outlined">tune</span>
-            <strong>Plan Configuration</strong>
-            <div className={styles.targetChips}>
-              <span className={styles.targetChip}>🔥 {user.calorieGoal ?? 2000} kcal</span>
-              <span className={styles.targetChip} style={{ color: "var(--protein)" }}>💪 {user.proteinGoal ?? 150}g P</span>
-              <span className={styles.targetChip} style={{ color: "var(--carbs)" }}>🌾 {user.carbsGoal ?? 200}g C</span>
-              <span className={styles.targetChip} style={{ color: "var(--fat)" }}>🥑 {user.fatGoal ?? 65}g F</span>
-              <a href="/profile" className={styles.editTargets}>Edit Goals →</a>
+          {/* Header */}
+          <div className={styles.header}>
+            <div>
+              <h1 className={styles.title}>
+                <span className="material-symbols-outlined" style={{ verticalAlign: "middle", marginRight: 8, color: "var(--primary)" }}>
+                  restaurant_menu
+                </span>
+                AI Meal Planner
+              </h1>
+              <p className={styles.subtitle}>
+                Generate a complete, personalized 7-day meal plan tailored to your macros
+              </p>
             </div>
+
+            {savedPlans && savedPlans.length > 0 && (
+              <button
+                className={styles.savedPlansBtn}
+                onClick={() => setActiveTab("saved")}
+                id="meal-plan-saved-btn"
+              >
+                <span className="material-symbols-outlined">history</span>
+                Saved Plans ({savedPlans.length})
+              </button>
+            )}
           </div>
 
-          <div className={styles.prefSection}>
-            <div className={styles.prefGroup}>
-              <label className={styles.prefLabel}>Preferences</label>
-              <div className={styles.prefTags}>
-                {PREF_OPTIONS.map((p) => (
-                  <button
-                    key={p}
-                    className={`${styles.prefTag} ${preferences.includes(p) ? styles.prefTagActive : ""}`}
-                    onClick={() => togglePref(p)}
-                    id={`meal-pref-${p.toLowerCase().replace(/\s/g, "-")}`}
-                  >
-                    {p}
-                  </button>
-                ))}
+          {/* Config panel */}
+          <div className={styles.configCard}>
+            <div className={styles.configHeader}>
+              <span className="material-symbols-outlined">tune</span>
+              <strong>Plan Configuration</strong>
+              <div className={styles.targetChips}>
+                <span className={styles.targetChip}>🔥 {user?.calorieGoal ?? 2000} kcal</span>
+                <span className={styles.targetChip} style={{ color: "var(--protein)" }}>💪 {user?.proteinGoal ?? 150}g P</span>
+                <span className={styles.targetChip} style={{ color: "var(--carbs)" }}>🌾 {user?.carbsGoal ?? 200}g C</span>
+                <span className={styles.targetChip} style={{ color: "var(--fat)" }}>🥑 {user?.fatGoal ?? 65}g F</span>
+                <a href="/profile" className={styles.editTargets}>Edit Goals →</a>
               </div>
             </div>
 
-            <div className={styles.prefGroup}>
-              <label className={styles.prefLabel}>Dietary Restrictions</label>
-              <div className={styles.prefTags}>
-                {RESTRICTION_OPTIONS.map((r) => (
-                  <button
-                    key={r}
-                    className={`${styles.prefTag} ${styles.prefTagRestriction} ${restrictions.includes(r) ? styles.prefTagRestrictionActive : ""}`}
-                    onClick={() => toggleRestriction(r)}
-                    id={`meal-restrict-${r.toLowerCase().replace(/\s/g, "-")}`}
-                  >
-                    {r}
-                  </button>
-                ))}
+            <div className={styles.prefSection}>
+              <div className={styles.prefGroup}>
+                <label className={styles.prefLabel}>Preferences</label>
+                <div className={styles.prefTags}>
+                  {PREF_OPTIONS.map((p) => (
+                    <button
+                      key={p}
+                      className={`${styles.prefTag} ${preferences.includes(p) ? styles.prefTagActive : ""}`}
+                      onClick={() => togglePref(p)}
+                      id={`meal-pref-${p.toLowerCase().replace(/\s/g, "-")}`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            <div className={styles.customPrefRow}>
-              <input
-                type="text"
-                className={styles.customPrefInput}
-                placeholder="Custom preference (e.g. 'Indian cuisine', 'meal prep friendly')…"
-                value={customPref}
-                onChange={(e) => setCustomPref(e.target.value)}
-                id="meal-plan-custom-pref"
-              />
-              <button
-                className={styles.generateBtn}
-                onClick={generate}
-                disabled={generating}
-                id="meal-plan-generate-btn"
-              >
-                {generating ? (
-                  <>
-                    <span className={styles.spinner}>⟳</span>
-                    Generating…
-                  </>
-                ) : (
-                  <>
-                    <span className="material-symbols-outlined">auto_awesome</span>
-                    Generate 7-Day Plan
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-
-          {error && (
-            <div className={styles.errorBanner}>
-              <span className="material-symbols-outlined">error</span>
-              {error}
-            </div>
-          )}
-        </div>
-
-        {/* Loading state */}
-        {generating && (
-          <div className={styles.loadingCard}>
-            <div className={styles.loadingInner}>
-              <div className={styles.loadingPulse} />
-              <span className="material-symbols-outlined" style={{ fontSize: 48, color: "var(--primary)", position: "relative" }}>
-                auto_awesome
-              </span>
-              <h2>Creating your 7-Day Plan…</h2>
-              <p>AI Chef is crafting personalized meals, calculating exact macros,<br />and building your shopping list</p>
-              <div className={styles.loadingSteps}>
-                {["Analyzing your goals", "Selecting meals", "Balancing macros", "Building shopping list"].map((step, i) => (
-                  <div key={step} className={styles.loadingStep} style={{ animationDelay: `${i * 0.4}s` }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>done</span>
-                    {step}
-                  </div>
-                ))}
+              <div className={styles.prefGroup}>
+                <label className={styles.prefLabel}>Dietary Restrictions</label>
+                <div className={styles.prefTags}>
+                  {RESTRICTION_OPTIONS.map((r) => (
+                    <button
+                      key={r}
+                      className={`${styles.prefTag} ${styles.prefTagRestriction} ${restrictions.includes(r) ? styles.prefTagRestrictionActive : ""}`}
+                      onClick={() => toggleRestriction(r)}
+                      id={`meal-restrict-${r.toLowerCase().replace(/\s/g, "-")}`}
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          </div>
-        )}
 
-        {/* Plan tabs */}
-        {plan && !generating && (
-          <>
-            <div className={styles.planTabs}>
-              <button
-                className={`${styles.planTab} ${activeTab === "plan" ? styles.planTabActive : ""}`}
-                onClick={() => setActiveTab("plan")}
-                id="meal-tab-plan"
-              >
-                <span className="material-symbols-outlined">calendar_view_week</span>
-                7-Day Plan
-              </button>
-              <button
-                className={`${styles.planTab} ${activeTab === "shopping" ? styles.planTabActive : ""}`}
-                onClick={() => setActiveTab("shopping")}
-                id="meal-tab-shopping"
-              >
-                <span className="material-symbols-outlined">shopping_cart</span>
-                Shopping List
-              </button>
-              {!saved ? (
+              <div className={styles.customPrefRow}>
+                <input
+                  type="text"
+                  className={styles.customPrefInput}
+                  placeholder="Custom preference (e.g. 'Indian cuisine', 'meal prep friendly')…"
+                  value={customPref}
+                  onChange={(e) => setCustomPref(e.target.value)}
+                  id="meal-plan-custom-pref"
+                />
                 <button
-                  className={`${styles.planTab} ${styles.planTabSave}`}
-                  onClick={handleSave}
-                  disabled={saving}
-                  id="meal-tab-save"
+                  className={styles.generateBtn}
+                  onClick={generate}
+                  disabled={generating}
+                  id="meal-plan-generate-btn"
                 >
-                  <span className="material-symbols-outlined">bookmark</span>
-                  {saving ? "Saving…" : "Save Plan"}
+                  {generating ? (
+                    <>
+                      <span className={styles.spinner}>⟳</span>
+                      Generating…
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined">auto_awesome</span>
+                      Generate 7-Day Plan
+                    </>
+                  )}
                 </button>
-              ) : (
-                <div className={styles.savedTag}>
-                  <span className="material-symbols-outlined">check_circle</span>
-                  Saved
+              </div>
+            </div>
+
+            {error && (
+              <div className={styles.errorBanner}>
+                <span className="material-symbols-outlined">error</span>
+                {error}
+              </div>
+            )}
+          </div>
+
+          {/* Loading state */}
+          {generating && (
+            <div className={styles.loadingCard}>
+              <div className={styles.loadingInner}>
+                <div className={styles.loadingPulse} />
+                <span className="material-symbols-outlined" style={{ fontSize: 48, color: "var(--primary)", position: "relative" }}>
+                  auto_awesome
+                </span>
+                <h2>Creating your 7-Day Plan…</h2>
+                <p>AI Chef is crafting personalized meals, calculating exact macros,<br />and building your shopping list</p>
+                <div className={styles.loadingSteps}>
+                  {["Analyzing your goals", "Selecting meals", "Balancing macros", "Building shopping list"].map((step, i) => (
+                    <div key={step} className={styles.loadingStep} style={{ animationDelay: `${i * 0.4}s` }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: 16 }}>done</span>
+                      {step}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Plan tabs */}
+          {plan && !generating && (
+            <>
+              <div className={styles.planTabs}>
+                <button
+                  className={`${styles.planTab} ${activeTab === "plan" ? styles.planTabActive : ""}`}
+                  onClick={() => setActiveTab("plan")}
+                  id="meal-tab-plan"
+                >
+                  <span className="material-symbols-outlined">calendar_view_week</span>
+                  7-Day Plan
+                </button>
+                <button
+                  className={`${styles.planTab} ${activeTab === "shopping" ? styles.planTabActive : ""}`}
+                  onClick={() => setActiveTab("shopping")}
+                  id="meal-tab-shopping"
+                >
+                  <span className="material-symbols-outlined">shopping_cart</span>
+                  Shopping List
+                </button>
+                {!saved ? (
+                  <button
+                    className={`${styles.planTab} ${styles.planTabSave}`}
+                    onClick={handleSave}
+                    disabled={saving}
+                    id="meal-tab-save"
+                  >
+                    <span className="material-symbols-outlined">bookmark</span>
+                    {saving ? "Saving…" : "Save Plan"}
+                  </button>
+                ) : (
+                  <div className={styles.savedTag}>
+                    <span className="material-symbols-outlined">check_circle</span>
+                    Saved
+                  </div>
+                )}
+              </div>
+
+              {activeTab === "plan" && (
+                <div className={styles.planSection}>
+                  {/* Day selector */}
+                  <div className={styles.daySelector}>
+                    {DAYS_OF_WEEK.map((day, i) => {
+                      const dayData = plan.days.find((d) => d.dayNumber === i + 1 || d.dayName === day);
+                      return (
+                        <button
+                          key={day}
+                          className={`${styles.dayBtn} ${activeDay === i ? styles.dayBtnActive : ""}`}
+                          onClick={() => { setActiveDay(i); setExpandedMeal(null); }}
+                          id={`meal-day-${i}`}
+                        >
+                          <span className={styles.dayBtnLabel}>{day.slice(0, 3)}</span>
+                          {dayData && <span className={styles.dayBtnCal}>{dayData.totalCalories} kcal</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Day detail */}
+                  {plan.days[activeDay] && (
+                    <DayDetail
+                      day={plan.days[activeDay]}
+                      expandedMeal={expandedMeal}
+                      onToggleMeal={setExpandedMeal}
+                      calorieGoal={user?.calorieGoal ?? 2000}
+                    />
+                  )}
+
+                  {/* Nutrition tips */}
+                  {plan.nutritionTips && plan.nutritionTips.length > 0 && (
+                    <div className={styles.tipsCard}>
+                      <div className={styles.tipsHeader}>
+                        <span className="material-symbols-outlined">tips_and_updates</span>
+                        <strong>Nutrition Tips for the Week</strong>
+                      </div>
+                      <div className={styles.tipsList}>
+                        {plan.nutritionTips.map((tip) => (
+                          <div key={tip} className={styles.tipItem}>
+                            <span style={{ color: "var(--primary)" }}>💡</span>
+                            {tip}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
 
-            {activeTab === "plan" && (
-              <div className={styles.planSection}>
-                {/* Day selector */}
-                <div className={styles.daySelector}>
-                  {DAYS_OF_WEEK.map((day, i) => {
-                    const dayData = plan.days.find((d) => d.dayNumber === i + 1 || d.dayName === day);
-                    return (
-                      <button
-                        key={day}
-                        className={`${styles.dayBtn} ${activeDay === i ? styles.dayBtnActive : ""}`}
-                        onClick={() => { setActiveDay(i); setExpandedMeal(null); }}
-                        id={`meal-day-${i}`}
-                      >
-                        <span className={styles.dayBtnLabel}>{day.slice(0, 3)}</span>
-                        {dayData && <span className={styles.dayBtnCal}>{dayData.totalCalories} kcal</span>}
-                      </button>
-                    );
-                  })}
-                </div>
+              {activeTab === "shopping" && (
+                <ShoppingListView shoppingList={plan.shoppingList} estimatedCost={plan.estimatedCost} />
+              )}
+            </>
+          )}
 
-                {/* Day detail */}
-                {plan.days[activeDay] && (
-                  <DayDetail
-                    day={plan.days[activeDay]}
-                    expandedMeal={expandedMeal}
-                    onToggleMeal={setExpandedMeal}
-                    calorieGoal={user.calorieGoal ?? 2000}
-                  />
-                )}
-
-                {/* Nutrition tips */}
-                {plan.nutritionTips && plan.nutritionTips.length > 0 && (
-                  <div className={styles.tipsCard}>
-                    <div className={styles.tipsHeader}>
-                      <span className="material-symbols-outlined">tips_and_updates</span>
-                      <strong>Nutrition Tips for the Week</strong>
-                    </div>
-                    <div className={styles.tipsList}>
-                      {plan.nutritionTips.map((tip) => (
-                        <div key={tip} className={styles.tipItem}>
-                          <span style={{ color: "var(--primary)" }}>💡</span>
-                          {tip}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === "shopping" && (
-              <ShoppingListView shoppingList={plan.shoppingList} estimatedCost={plan.estimatedCost} />
-            )}
-          </>
-        )}
-
-        {/* Saved plans tab */}
-        {activeTab === "saved" && (
-          <SavedPlansView
-            plans={(savedPlans ?? []) as SavedPlan[]}
-            onLoad={loadSavedPlan}
-            onDelete={handleDeletePlan}
-            onPin={handleTogglePin}
-            onClose={() => setActiveTab("plan")}
-          />
-        )}
+          {/* Saved plans tab */}
+          {activeTab === "saved" && (
+            <SavedPlansView
+              plans={(savedPlans ?? []) as SavedPlan[]}
+              onLoad={loadSavedPlan}
+              onDelete={handleDeletePlan}
+              onPin={handleTogglePin}
+              onClose={() => setActiveTab("plan")}
+            />
+          )}
+        </div>
       </div>
-    </div>
+    </AuthGuard>
   );
 }
 

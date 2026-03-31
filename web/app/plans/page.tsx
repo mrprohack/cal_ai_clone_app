@@ -5,10 +5,9 @@ import { useAuth } from "@/lib/auth-context";
 import { updatePlan as doUpdatePlan, getUserPlan } from "@/lib/actions/users";
 import { Navbar } from "@/components/Navbar";
 import styles from "./Plans.module.css";
+import { AuthGuard } from "@/components/AuthGuard";
 
-/* ══════════════════════════════════════════════
-   PLAN CONFIG
-══════════════════════════════════════════════ */
+/* ── Plan config ── */
 type PlanId = "free" | "pro" | "ultra";
 
 const PLANS = [
@@ -77,9 +76,7 @@ const PLANS = [
   },
 ] as const;
 
-/* ══════════════════════════════════════════════
-   PAGE
-══════════════════════════════════════════════ */
+/* ── Page ── */
 export default function PlansPage() {
   const { user }    = useAuth();
   const userId      = user?.id ? Number(user.id) : null;
@@ -124,187 +121,189 @@ export default function PlansPage() {
   const annualDiscount = 0.2;
 
   return (
-    <div className={styles.page}>
-      <Navbar />
+    <AuthGuard>
+      <div className={styles.page}>
+        <Navbar />
 
-      {/* ── Hero ── */}
-      <section className={styles.hero}>
-        <div className={styles.heroGlow} aria-hidden />
-        <div className={styles.heroContent}>
-          <span className={styles.heroPill}>
-            <span className="material-symbols-outlined">workspace_premium</span>
-            Upgrade Your Journey
-          </span>
-          <h1 className={styles.heroTitle}>
-            Choose Your<br />
-            <span className={styles.heroGradient}>Power Level</span>
-          </h1>
-          <p className={styles.heroSub}>
-            Unlock unlimited AI meal analysis, advanced analytics, and a personal nutrition coach.
-          </p>
-
-          {/* Billing toggle */}
-          <div className={styles.billingToggle}>
-            <span className={!annual ? styles.billingActive : styles.billingInactive}>Monthly</span>
-            <button
-              className={`${styles.toggleBg} ${annual ? styles.toggleOn : ""}`}
-              onClick={() => setAnnual((v) => !v)}
-              role="switch"
-              aria-checked={annual}
-              aria-label="Switch billing period"
-            >
-              <span className={styles.toggleThumb} />
-            </button>
-            <span className={annual ? styles.billingActive : styles.billingInactive}>
-              Annual
-              <span className={styles.saveBadge}>Save 20%</span>
+        {/* ── Hero ── */}
+        <section className={styles.hero}>
+          <div className={styles.heroGlow} aria-hidden />
+          <div className={styles.heroContent}>
+            <span className={styles.heroPill}>
+              <span className="material-symbols-outlined">workspace_premium</span>
+              Upgrade Your Journey
             </span>
-          </div>
-        </div>
-      </section>
+            <h1 className={styles.heroTitle}>
+              Choose Your<br />
+              <span className={styles.heroGradient}>Power Level</span>
+            </h1>
+            <p className={styles.heroSub}>
+              Unlock unlimited AI meal analysis, advanced analytics, and a personal nutrition coach.
+            </p>
 
-      {/* ── Pricing cards ── */}
-      <section className={styles.cardsSection}>
-        <div className={styles.cardsGrid}>
-          {PLANS.map((plan) => {
-            const isActive  = currentPlan === plan.id;
-            const isLoading = loading === plan.id;
-            const isSuccess = success === plan.id;
-            const price     = plan.price === 0
-              ? 0
-              : annual
-                ? Math.round(plan.price * (1 - annualDiscount))
-                : plan.price;
-
-            return (
-              <div
-                key={plan.id}
-                className={`${styles.card} ${isActive ? styles.cardActive : ""} ${plan.badge ? styles.cardFeatured : ""}`}
-                style={{ "--plan-color": plan.color, "--plan-glow": plan.glow } as React.CSSProperties}
+            {/* Billing toggle */}
+            <div className={styles.billingToggle}>
+              <span className={!annual ? styles.billingActive : styles.billingInactive}>Monthly</span>
+              <button
+                className={`${styles.toggleBg} ${annual ? styles.toggleOn : ""}`}
+                onClick={() => setAnnual((v) => !v)}
+                role="switch"
+                aria-checked={annual}
+                aria-label="Switch billing period"
               >
-                {/* Popular badge */}
-                {plan.badge && (
-                  <div className={styles.cardBadge} style={{ background: plan.color }}>
-                    <span className="material-symbols-outlined">workspace_premium</span>
-                    {plan.badge}
-                  </div>
-                )}
-
-                {/* Current plan indicator */}
-                {isActive && (
-                  <div className={styles.currentBadge}>
-                    <span className="material-symbols-outlined">check_circle</span>
-                    Current Plan
-                  </div>
-                )}
-
-                {/* Card header */}
-                <div className={styles.cardHeader} style={{ background: plan.gradient }}>
-                  <div className={styles.planIconWrap} style={{ background: `${plan.color}22`, borderColor: `${plan.color}44` }}>
-                    <span className="material-symbols-outlined" style={{ color: plan.color, fontSize: 26 }}>
-                      {plan.icon}
-                    </span>
-                  </div>
-                  <div>
-                    <div className={styles.planName} style={{ color: plan.color }}>{plan.name}</div>
-                    <div className={styles.planTagline}>{plan.tagline}</div>
-                  </div>
-                </div>
-
-                {/* Price */}
-                <div className={styles.priceBlock}>
-                  {plan.price === 0 ? (
-                    <div className={styles.priceRow}>
-                      <span className={styles.priceFree}>Free</span>
-                      <span className={styles.pricePeriod}>forever</span>
-                    </div>
-                  ) : (
-                    <div className={styles.priceRow}>
-                      <span className={styles.priceCurrency}>$</span>
-                      <span className={styles.priceNum}>{price}</span>
-                      <span className={styles.pricePeriod}>
-                        {annual ? "/ mo, billed annually" : "/ month"}
-                      </span>
-                    </div>
-                  )}
-                  {annual && plan.price > 0 && (
-                    <div className={styles.priceAnnualNote}>
-                      ${price * 12} / year · saves ${(plan.price - price) * 12}
-                    </div>
-                  )}
-                </div>
-
-                {/* Features */}
-                <ul className={styles.featureList} role="list">
-                  {plan.features.map((f) => (
-                    <li
-                      key={f.label}
-                      className={`${styles.featureItem} ${"dim" in f && f.dim ? styles.featureDim : ""}`}
-                    >
-                      <span
-                        className="material-symbols-outlined"
-                        style={{ color: "dim" in f && f.dim ? "var(--text-dim)" : plan.color }}
-                      >
-                        {f.icon}
-                      </span>
-                      <span className={styles.featureLabel}>{f.label}</span>
-                      <span
-                        className={styles.featureValue}
-                        style={{ color: "dim" in f && f.dim ? "var(--text-dim)" : "var(--text-secondary)" }}
-                      >
-                        {f.value}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-
-                {/* CTA */}
-                <button
-                  className={`${styles.ctaBtn} ${isActive ? styles.ctaBtnActive : ""} ${isSuccess ? styles.ctaBtnSuccess : ""}`}
-                  style={
-                    isActive || isSuccess
-                      ? {}
-                      : { background: plan.color, boxShadow: `0 6px 24px ${plan.glow}` }
-                  }
-                  onClick={() => handleSelect(plan.id)}
-                  disabled={isActive || isLoading || !userId}
-                  id={`plan-select-${plan.id}`}
-                  aria-label={`Select ${plan.name} plan`}
-                >
-                  {isLoading ? (
-                    <><div className={styles.spin} />Activating…</>
-                  ) : isSuccess ? (
-                    <><span className="material-symbols-outlined">check_circle</span>Plan Activated!</>
-                  ) : isActive ? (
-                    <><span className="material-symbols-outlined">check</span>Current Plan</>
-                  ) : plan.price === 0 ? (
-                    <><span className="material-symbols-outlined">arrow_downward</span>Downgrade to Free</>
-                  ) : (
-                    <><span className="material-symbols-outlined">rocket_launch</span>Get {plan.name}</>
-                  )}
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* ── Guarantee strip ── */}
-      <section className={styles.footer}>
-        <div className={styles.guaranteeRow}>
-          {[
-            { icon: "shield",         text: "Cancel anytime, no questions asked" },
-            { icon: "lock",           text: "Secure payment, data encrypted" },
-            { icon: "replay",         text: "30-day money-back guarantee" },
-            { icon: "support_agent",  text: "24/7 support for Pro & Ultra" },
-          ].map(({ icon, text }) => (
-            <div key={text} className={styles.guaranteeItem}>
-              <span className="material-symbols-outlined">{icon}</span>
-              <span>{text}</span>
+                <span className={styles.toggleThumb} />
+              </button>
+              <span className={annual ? styles.billingActive : styles.billingInactive}>
+                Annual
+                <span className={styles.saveBadge}>Save 20%</span>
+              </span>
             </div>
-          ))}
-        </div>
-      </section>
-    </div>
+          </div>
+        </section>
+
+        {/* ── Pricing cards ── */}
+        <section className={styles.cardsSection}>
+          <div className={styles.cardsGrid}>
+            {PLANS.map((plan) => {
+              const isActive  = currentPlan === plan.id;
+              const isLoading = loading === plan.id;
+              const isSuccess = success === plan.id;
+              const price     = plan.price === 0
+                ? 0
+                : annual
+                  ? Math.round(plan.price * (1 - annualDiscount))
+                  : plan.price;
+
+              return (
+                <div
+                  key={plan.id}
+                  className={`${styles.card} ${isActive ? styles.cardActive : ""} ${plan.badge ? styles.cardFeatured : ""}`}
+                  style={{ "--plan-color": plan.color, "--plan-glow": plan.glow } as React.CSSProperties}
+                >
+                  {/* Popular badge */}
+                  {plan.badge && (
+                    <div className={styles.cardBadge} style={{ background: plan.color }}>
+                      <span className="material-symbols-outlined">workspace_premium</span>
+                      {plan.badge}
+                    </div>
+                  )}
+
+                  {/* Current plan indicator */}
+                  {isActive && (
+                    <div className={styles.currentBadge}>
+                      <span className="material-symbols-outlined">check_circle</span>
+                      Current Plan
+                    </div>
+                  )}
+
+                  {/* Card header */}
+                  <div className={styles.cardHeader} style={{ background: plan.gradient }}>
+                    <div className={styles.planIconWrap} style={{ background: `${plan.color}22`, borderColor: `${plan.color}44` }}>
+                      <span className="material-symbols-outlined" style={{ color: plan.color, fontSize: 26 }}>
+                        {plan.icon}
+                      </span>
+                    </div>
+                    <div>
+                      <div className={styles.planName} style={{ color: plan.color }}>{plan.name}</div>
+                      <div className={styles.planTagline}>{plan.tagline}</div>
+                    </div>
+                  </div>
+
+                  {/* Price */}
+                  <div className={styles.priceBlock}>
+                    {plan.price === 0 ? (
+                      <div className={styles.priceRow}>
+                        <span className={styles.priceFree}>Free</span>
+                        <span className={styles.pricePeriod}>forever</span>
+                      </div>
+                    ) : (
+                      <div className={styles.priceRow}>
+                        <span className={styles.priceCurrency}>$</span>
+                        <span className={styles.priceNum}>{price}</span>
+                        <span className={styles.pricePeriod}>
+                          {annual ? "/ mo, billed annually" : "/ month"}
+                        </span>
+                      </div>
+                    )}
+                    {annual && plan.price > 0 && (
+                      <div className={styles.priceAnnualNote}>
+                        ${price * 12} / year · saves ${(plan.price - price) * 12}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Features */}
+                  <ul className={styles.featureList} role="list">
+                    {plan.features.map((f) => (
+                      <li
+                        key={f.label}
+                        className={`${styles.featureItem} ${"dim" in f && f.dim ? styles.featureDim : ""}`}
+                      >
+                        <span
+                          className="material-symbols-outlined"
+                          style={{ color: "dim" in f && f.dim ? "var(--text-dim)" : plan.color }}
+                        >
+                          {f.icon}
+                        </span>
+                        <span className={styles.featureLabel}>{f.label}</span>
+                        <span
+                          className={styles.featureValue}
+                          style={{ color: "dim" in f && f.dim ? "var(--text-dim)" : "var(--text-secondary)" }}
+                        >
+                          {f.value}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  {/* CTA */}
+                  <button
+                    className={`${styles.ctaBtn} ${isActive ? styles.ctaBtnActive : ""} ${isSuccess ? styles.ctaBtnSuccess : ""}`}
+                    style={
+                      isActive || isSuccess
+                        ? {}
+                        : { background: plan.color, boxShadow: `0 6px 24px ${plan.glow}` }
+                    }
+                    onClick={() => handleSelect(plan.id)}
+                    disabled={isActive || isLoading || !userId}
+                    id={`plan-select-${plan.id}`}
+                    aria-label={`Select ${plan.name} plan`}
+                  >
+                    {isLoading ? (
+                      <><div className={styles.spin} />Activating…</>
+                    ) : isSuccess ? (
+                      <><span className="material-symbols-outlined">check_circle</span>Plan Activated!</>
+                    ) : isActive ? (
+                      <><span className="material-symbols-outlined">check</span>Current Plan</>
+                    ) : plan.price === 0 ? (
+                      <><span className="material-symbols-outlined">arrow_downward</span>Downgrade to Free</>
+                    ) : (
+                      <><span className="material-symbols-outlined">rocket_launch</span>Get {plan.name}</>
+                    )}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* ── Guarantee strip ── */}
+        <section className={styles.footer}>
+          <div className={styles.guaranteeRow}>
+            {[
+              { icon: "shield",         text: "Cancel anytime, no questions asked" },
+              { icon: "lock",           text: "Secure payment, data encrypted" },
+              { icon: "replay",         text: "30-day money-back guarantee" },
+              { icon: "support_agent",  text: "24/7 support for Pro & Ultra" },
+            ].map(({ icon, text }) => (
+              <div key={text} className={styles.guaranteeItem}>
+                <span className="material-symbols-outlined">{icon}</span>
+                <span>{text}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+    </AuthGuard>
   );
 }

@@ -2,6 +2,10 @@
 /**
  * Cal AI — Auth Context
  *
+ * Uses API routes (/api/auth/*) for authentication instead of server actions.
+ * Server actions use Next.js RSC flight protocol which doesn't work reliably
+ * through PHP reverse proxy. Plain JSON API routes work perfectly.
+ *
  * Stores the session token in localStorage.
  * Provides useAuth() hook for all pages.
  */
@@ -13,9 +17,24 @@ import React, {
   useCallback,
   ReactNode,
 } from "react";
-import { getSessionUser, signUp as doSignUp, signIn as doSignIn, signOut as doSignOut, AuthUser } from "@/lib/actions/auth";
 
 /* ── Types ── */
+export interface AuthUser {
+  id: number;
+  name: string;
+  email: string;
+  calorieGoal: number;
+  proteinGoal: number;
+  carbsGoal: number;
+  fatGoal: number;
+  avatarUrl?: string;
+  weightKg?: number;
+  heightCm?: number;
+  ageYears?: number;
+  gender?: string;
+  onboarded?: boolean;
+}
+
 interface AuthState {
   user: AuthUser | null;
   token: string | null;
@@ -49,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setHydrated(true);
   }, []);
 
-  // Fetch session user reactively when token or hydration state changes
+  // Fetch session user via API route when token changes
   useEffect(() => {
     if (!hydrated) return;
 
@@ -60,26 +79,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     setLoading(true);
-    getSessionUser(token).then((res) => {
-      setUser(res);
-      setLoading(false);
-    }).catch(() => {
-      setUser(null);
-      setLoading(false);
-    });
+    fetch("/api/auth/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        setUser(data.user ?? null);
+        setLoading(false);
+      })
+      .catch(() => {
+        setUser(null);
+        setLoading(false);
+      });
   }, [hydrated, token]);
 
   const signUp = useCallback(
     async (name: string, email: string, password: string) => {
-      let res: any;
-      try {
-        res = await doSignUp({ name, email, password });
-      } catch (err) {
-        throw err instanceof Error ? err : new Error("Sign up failed");
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error || "Sign up failed");
       }
-      if (!res) throw new Error("Sign up failed — no response from server");
-      if (res.error) throw new Error(res.error);
-      const t = res.token!;
+      const t = data.token;
       localStorage.setItem(TOKEN_KEY, t);
       setToken(t);
     },
@@ -88,15 +115,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(
     async (email: string, password: string) => {
-      let res: any;
-      try {
-        res = await doSignIn({ email, password });
-      } catch (err) {
-        throw err instanceof Error ? err : new Error("Sign in failed");
+      const res = await fetch("/api/auth/signin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error || "Sign in failed");
       }
-      if (!res) throw new Error("Sign in failed — no response from server");
-      if (res.error) throw new Error(res.error);
-      const t = res.token!;
+      const t = data.token;
       localStorage.setItem(TOKEN_KEY, t);
       setToken(t);
     },
@@ -105,7 +133,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     if (token) {
-      await doSignOut({ token }).catch(() => {});
+      await fetch("/api/auth/signout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      }).catch(() => {});
     }
     localStorage.removeItem(TOKEN_KEY);
     setToken(null);
@@ -113,7 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [token]);
 
   return (
-    <AuthContext.Provider value={{ user: user, token, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, token, loading, signUp, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );
