@@ -1,9 +1,9 @@
 # Cal AI Clone 🥗🔥
 
-> **An AI-powered nutrition & fitness tracker** — log meals, track macros, chat with an AI coach, and monitor your progress. Built with Next.js 14, Convex, and Groq.
+> **An AI-powered nutrition & fitness tracker** — log meals, track macros, chat with an AI coach, and monitor your progress. Built with Next.js 14, MySQL, and Groq.
 
 ![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=next.js)
-![Convex](https://img.shields.io/badge/Convex-1.12-orange?logo=convex)
+![MySQL](https://img.shields.io/badge/MySQL-DB-blue?logo=mysql)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)
 ![Groq](https://img.shields.io/badge/Groq-kimi--k2-green)
 ![License](https://img.shields.io/badge/license-MIT-brightgreen)
@@ -19,7 +19,7 @@
 | 🤖 **FitBot AI Coach** | Streaming AI chat powered by **Groq** (`kimi-k2-instruct`) on Edge Runtime |
 | 📈 **Progress Tracker** | Daily macro snapshots, weight tracking, water intake & step count |
 | 👤 **Profile & Goals** | Mifflin-St Jeor BMR calculator, personalised calorie/macro targets |
-| 🔐 **Custom Auth** | Email/password sign-up & sign-in with bcrypt hashing, token-based sessions in Convex |
+| 🔐 **Custom Auth** | Email/password sign-up & sign-in with bcrypt hashing, token-based sessions in MySQL |
 | 🌙 **Dark Glassmorphism UI** | Premium dark theme with glassmorphism cards, animated blobs & smooth transitions |
 
 ---
@@ -38,14 +38,10 @@ cal_ai_clone/
 │   │   ├── login/           ← Sign-in page
 │   │   ├── signup/          ← Registration page
 │   │   └── api/chat/        ← Edge API route → Groq streaming
-│   ├── convex/              ← Convex backend (DB + serverless functions)
-│   │   ├── schema.ts        ← Database schema (users, sessions, meals, progress)
-│   │   ├── auth.ts          ← Auth mutations/queries (signUp, signIn, signOut)
-│   │   ├── meals.ts         ← Meal CRUD
-│   │   ├── progress.ts      ← Daily progress upsert & range queries
-│   │   └── seed.ts          ← Demo data seeder
 │   ├── components/          ← Shared UI components (Navbar, etc.)
 │   └── lib/
+│       ├── actions/         ← Next.js Server Actions (meals, users, etc.)
+│       ├── db.ts            ← MySQL Database Connection
 │       └── auth-context.tsx ← React auth context + useAuth() hook
 ```
 
@@ -56,13 +52,13 @@ cal_ai_clone/
 | Layer | Technology |
 |---|---|
 | **Framework** | [Next.js 14](https://nextjs.org) (App Router, Edge Runtime) |
-| **Database & Backend** | [Convex](https://convex.dev) — reactive real-time database + serverless TypeScript functions |
-| **Auth** | Custom email/password — bcrypt hashing, 64-char session tokens stored in Convex |
+| **Database & Backend** | MySQL — Relational database accessed via Next.js Server Actions |
+| **Auth** | Custom email/password — bcrypt hashing, 64-char session tokens stored in MySQL |
 | **AI / Chat** | [Groq](https://groq.com) API — `moonshotai/kimi-k2-instruct` model, streamed via SSE |
 | **Language** | TypeScript 5 (strict) |
 | **Styling** | Vanilla CSS Modules — dark glassmorphism design system |
 | **Icons** | Google Material Symbols |
-| **Fonts** | Inter (Google Fonts) |
+| **Fonts** | Space Grotesk & Barlow Condensed (Google Fonts) |
 
 ---
 
@@ -71,7 +67,7 @@ cal_ai_clone/
 ### Prerequisites
 
 - Node.js ≥ 18
-- A [Convex](https://dashboard.convex.dev) account (free)
+- A MySQL Database
 - A [Groq](https://console.groq.com) API key (free tier available)
 
 ### 1. Clone
@@ -87,34 +83,21 @@ npm install
 Create `web/.env.local`:
 
 ```env
-# Convex (get from `npx convex dev` output or dashboard)
-NEXT_PUBLIC_CONVEX_URL=https://your-deployment.convex.cloud
+# Database Credentials
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=your_password
+DB_DATABASE=cal_ai_db
 
 # Groq API key — powers FitBot AI chat
 GROQ_API_KEY=gsk_...
 ```
 
-### 3. Initialise Convex
+### 3. Start the dev server
 
 ```bash
 cd web
-npx convex dev
-# Follow the prompts to log in and create a new Convex project.
-# This generates convex/_generated/ and pushes the schema.
-```
-
-> **Note:** Until you run `npx convex dev`, the repo ships with hand-crafted stubs in `convex/_generated/` so TypeScript compiles cleanly. Running `npx convex dev` replaces them with fully-typed generated files.
-
-### 4. Start the dev server
-
-```bash
-npm run dev          # http://localhost:3000
-```
-
-### 5. (Optional) Seed demo data
-
-```bash
-npx convex run seed:seedDemoUser
+npm run dev          # http://localhost:3004
 ```
 
 ---
@@ -123,12 +106,15 @@ npx convex run seed:seedDemoUser
 
 | Variable | Required | Description |
 |---|---|---|
-| `NEXT_PUBLIC_CONVEX_URL` | ✅ | Your Convex deployment URL |
+| `DB_HOST` | ✅ | MySQL Database Host |
+| `DB_USER` | ✅ | MySQL Database User |
+| `DB_PASSWORD` | ✅ | MySQL Database Password |
+| `DB_DATABASE` | ✅ | MySQL Database Name |
 | `GROQ_API_KEY` | ✅ | Groq API key for FitBot AI chat |
 
 ---
 
-## 🗄️ Database Schema (Convex)
+## 🗄️ Database Schema (MySQL)
 
 | Table | Purpose |
 |---|---|
@@ -172,9 +158,9 @@ FitBot is a nutrition coach powered by **Groq's `kimi-k2-instruct`** model runni
 ## 🧪 Development Notes
 
 - **TypeScript**: `strict` mode — zero `tsc --noEmit` errors
-- **Compound index queries**: use `(q as any)` casts in Convex until `npx convex dev` generates fully-typed helpers
-- **Auth flow**: token stored in `localStorage` → passed in Convex `useQuery("skip")` guard until hydrated
-- **Demo account**: `demo@calai.app` / `Demo1234!` (available after seeding)
+- **Server Actions**: All DB operations are handled through `lib/actions/` standard Next.js Server Actions.
+- **Auth flow**: Token stored in `localStorage` → validated securely on both client (`useAuth()`) and server-side actions.
+- **Demo account**: `demo@calai.app` / `Demo1234!`
 
 ---
 
