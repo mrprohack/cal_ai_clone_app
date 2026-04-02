@@ -518,6 +518,7 @@ User taps "Scan Meal" on /log
 8. **Animations:** Always include `@media (prefers-reduced-motion: reduce)` override for any `@keyframes`.
 9. **Error states:** All async operations must handle loading, success, and error states in the UI.
 10. **IDs:** Every interactive element needs a unique `id` attribute (format: `page-component-action`).
+11. **Temporary Files & Organization:** Always create scratch scripts, debug logs, or one-off data files (like Lighthouse reports) inside the `/tmp/` directory. Do not clutter the `web/` or project root directories with temporary artifacts. Keep file organization pristine.
 
 ---
 
