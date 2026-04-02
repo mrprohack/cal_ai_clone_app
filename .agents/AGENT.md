@@ -359,7 +359,17 @@ Indexes: `by_user`, `by_user_date`
 - **Output:** Complete 7-day meal plan JSON with meals, shopping list, weekly totals
 - **Key:** `GROQ_API_KEY` env variable
 
+### Auth API Routes
+
+| Endpoint | Method | Description |
+| :--- | :--- | :--- |
+| `/api/auth/signup` | POST | Create new user and return JSON session token |
+| `/api/auth/signin` | POST | Check credentials and return session token |
+| `/api/auth/signout` | POST | Revoke a session token from the DB |
+| `/api/auth/session` | POST | Resolve user from an existing session token string |
+
 ### `POST /api/chat`
+
 - **AI:** Groq / OpenAI streaming
 - **Input:** `{ messages: ChatMessage[] }`
 - **Output:** Stream of text chunks (FitBot responses)
@@ -714,49 +724,82 @@ Browser → Hostinger Apache (port 443)
 | `pm2 start npm --name cal-ai-web -- start` | Start Next.js in production |
 | `pm2 restart cal-ai-web` | Restart after deploy |
 | `pm2 stop cal-ai-web` | Stop the server |
-| `pm2 logs cal-ai-web --lines 50` | View recent logs |
-| `pm2 status` | Check running processes |
-| `pm2 save` | Persist process list across reboots |
+| `pm2 logs cal-ai-web --lines 50` | View recent---
 
-### Production Environment Variables (`…/.env`)
+## 19. AUTH GUARD & ROUTE PROTECTION
 
-| Variable | Value | Purpose |
-|----------|-------|---------|
-| `DB_CONNECTION` | `mysql` | DB driver |
-| `DB_HOST` | `auth-db1873.hstgr.io` | Hostinger MySQL host |
-| `DB_PORT` | `3306` | MySQL port |
-| `DB_DATABASE` | `u697986122_calai` | Database name |
-| `DB_USERNAME` | `u697986122_calai` | DB user |
-| `DB_PASSWORD` | *(set in .env)* | DB password |
-| `GROQ_API_KEY` | *(set in .env)* | Groq AI API key |
+**File:** `web/components/AuthGuard.tsx`
 
-### Deployment Workflow
+The `AuthGuard` is a higher-order component (HOC) used to protect specific pages (routes) from unauthenticated access.
 
-```bash
-# 1. Build locally
-cd web && npm run build
+### Usage Pattern
 
-# 2. Transfer build to server
-tar -czf deploy.tar.gz .next/ package.json package-lock.json next.config.js lib/ public/
-scp deploy.tar.gz host:/home/u697986122/domains/lightgreen-spider-622425.hostingersite.com/
+Pages are wrapped in their main export:
 
-# 3. SSH in and unpack
-ssh host
-cd /home/u697986122/domains/lightgreen-spider-622425.hostingersite.com/
-tar -xzf deploy.tar.gz
-npm install --production
-
-# 4. Restart the server
-pm2 restart cal-ai-web
+```tsx
+export default function DashboardPage() {
+  return (
+    <AuthGuard>
+      {/* page content here */}
+    </AuthGuard>
+  );
+}
 ```
 
-### Common Issues
+### Features
 
-| Symptom | Cause | Fix |
-|---------|-------|-----|
+1. **Hydration Loading**: Prevents flashing of unauthorized content until `authLoading` is finished.
+2. **Auto-Redirect**: Uses `useRouter().push('/login')` if no `user` object is resolved.
+3. **Session Awareness**: Integrated directly with `useAuth` hook and `AuthContext`.
+
+---
+
+## 20. AUTHENTICATION STRATEGY
+
+1. **Tokens**: 64-char hex random strings stored in `localStorage` (`calai_session`) on the client.
+2. **Session DB**: Token is mapped to a `userId` in the `sessions` MySql table.
+3. **Expiry**: 30-day rolling expiration on every session verification.
+4. **Guards**: `AuthGuard.tsx` for client-side redirection. High-security server actions should use `getSessionUser()` for server-side verification.
+-|
 | `⚠️ Proxy Error: Failed to connect to 127.0.0.1 port 3000` | Next.js not running | `ssh host` → `cd …` → `pm2 start npm --name cal-ai-web -- start` |
 | pm2 process shows `errored` | Build issue or missing deps | Check `pm2 logs`, run `npm install`, rebuild |
 | Site loads but pages 404 | Missing `.next/` build | Rebuild and redeploy |
 | CSS/JS not loading | `_next/` assets not proxied | Verify `.htaccess` has the `_next` rewrite rule |
 
-> **Last audited:** 2026-03-27 · Implemented AuthGuard route protection across all protected pages.
+> **Last audited:** 2026-03-31 · Implemented AuthGuard route protection across all hidden pages and documented new Auth API routes.
+
+---
+
+## 19. AUTH GUARD & ROUTE PROTECTION
+
+**File:** `web/components/AuthGuard.tsx`
+
+The `AuthGuard` is a higher-order component (HOC) used to protect specific pages (routes) from unauthenticated access. 
+
+### Usage Pattern
+
+Pages are wrapped in their main export:
+```tsx
+export default function DashboardPage() {
+  return (
+    <AuthGuard>
+      {/* page content here */}
+    </AuthGuard>
+  );
+}
+```
+
+### Features
+
+1. **Hydration Loading**: Prevents flashing of unauthorized content until `authLoading` is finished.
+2. **Auto-Redirect**: Uses `useRouter().push('/login')` if no `user` object is resolved.
+3. **Session Awareness**: Integrated directly with `useAuth` hook and `AuthContext`.
+
+---
+
+## 20. AUTHENTICATION STRATEGY
+
+1. **Tokens**: 64-char hex random strings stored in `localStorage` (`calai_session`) on the client.
+2. **Session DB**: Token is mapped to a `userId` in the `sessions` MySql table.
+3. **Expiry**: 30-day rolling expiration on every session verification.
+4. **Guards**: `AuthGuard.tsx` for client-side redirection. High-security server actions should use `getSessionUser()` for server-side verification.
