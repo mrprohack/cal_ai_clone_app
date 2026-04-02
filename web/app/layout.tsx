@@ -23,8 +23,6 @@ export const viewport: Viewport = {
   themeColor: "#09090b",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
 };
 
 export const metadata: Metadata = {
@@ -42,16 +40,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <head>
         <meta name="mobile-web-app-capable" content="yes" />
-        {/* Preconnect cuts ~150 ms off the icon-font download */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {/* Material Symbols — display=swap prevents icon FOIT */}
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap"
-        />
       </head>
       <body className={`${spaceGrotesk.className} ${barlowCondensed.variable}`}>
+        {/* React 18 managed stylesheet hoisting */}
+        <link
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap"
+          rel="stylesheet"
+          precedence="default"
+        />
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>

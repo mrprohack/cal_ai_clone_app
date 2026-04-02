@@ -11,8 +11,8 @@
   --card: #0f1a24;
 
   /* Brand */
-  --primary: #3b96f5;
-  --primary-dark: #1f7de0;
+  --primary: #1a6cc4;
+  --primary-dark: #135196;
   --primary-light: #6db3ff;
   --primary-glow: rgba(59, 150, 245, 0.25);
   --primary-glow-strong: rgba(59, 150, 245, 0.45);
@@ -33,7 +33,7 @@
   /* Text */
   --text: #f0f6ff;
   --text-secondary: #8ba3bc;
-  --text-muted: #4d6075;
+  --text-muted: #7995b3;
   --text-dim: #2a3a4a;
 
   /* Borders */

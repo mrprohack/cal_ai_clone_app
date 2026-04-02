@@ -761,12 +761,14 @@ export default function DashboardPage() {
 3. **Expiry**: 30-day rolling expiration on every session verification.
 4. **Guards**: `AuthGuard.tsx` for client-side redirection. High-security server actions should use `getSessionUser()` for server-side verification.
 -|
+| `pm2 logs cal-ai-web --lines 50` | View recent logs |
 | `⚠️ Proxy Error: Failed to connect to 127.0.0.1 port 3000` | Next.js not running | `ssh host` → `cd …` → `pm2 start npm --name cal-ai-web -- start` |
 | pm2 process shows `errored` | Build issue or missing deps | Check `pm2 logs`, run `npm install`, rebuild |
 | Site loads but pages 404 | Missing `.next/` build | Rebuild and redeploy |
 | CSS/JS not loading | `_next/` assets not proxied | Verify `.htaccess` has the `_next` rewrite rule |
 
-> **Last audited:** 2026-03-31 · Implemented AuthGuard route protection across all hidden pages and documented new Auth API routes.
+> **Last audited:** April 2, 2026
+> **Auditor:** Assistant (Lighthouse Audit + React 18 Material Icon Font Bugfix)
 
 ---
 
