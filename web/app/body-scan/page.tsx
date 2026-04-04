@@ -151,7 +151,7 @@ export default function BodyScanPage() {
         : undefined;
 
     try {
-      const res = await fetch("/api/analyze-body", {
+      const res = await fetch("/api/analyze-body.php", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

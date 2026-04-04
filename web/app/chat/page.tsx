@@ -123,7 +123,7 @@ export default function ChatPage() {
     ` : "";
 
     try {
-      const res = await fetch("/api/chat", {
+      const res = await fetch("/api/chat.php", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: historyRef.current, contextPrompt }),

@@ -187,7 +187,7 @@ export default function MealPlanPage() {
 
     try {
       const allPrefs = customPref ? [...preferences, customPref] : preferences;
-      const res = await fetch("/api/meal-plan", {
+      const res = await fetch("/api/meal-plan.php", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

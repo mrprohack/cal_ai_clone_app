@@ -48,7 +48,7 @@ export function useAIScan(onComplete?: (result: AiMealResult) => void) {
         const mimeType = file.type || "image/jpeg"
 
         // Call AI analysis API
-        const res = await fetch("/api/analyze-meal", {
+        const res = await fetch("/api/analyze-meal.php", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ imageBase64: base64, mimeType }),
