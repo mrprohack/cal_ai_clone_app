@@ -1,18 +1,18 @@
 /* ── Page shell ── */
 .page {
-  min-height: 100vh;
+  height: 100vh;
   background: var(--bg);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .layout {
   display: flex;
   flex: 1;
-  height: calc(100vh - 60px);
-  margin-top: 60px;
   overflow: hidden;
   position: relative;
+  min-height: 0; /* allow flex children to shrink */
 }
 
 /* ── Sidebar ── */
@@ -568,7 +568,7 @@
 
 /* ── Responsive ── */
 @media (max-width: 768px) {
-  .layout { margin-top: 56px; height: calc(100dvh - 56px - 60px); }
+  .layout { height: calc(100dvh - 56px - 60px); }
 
   .sidebar {
     position: fixed;
