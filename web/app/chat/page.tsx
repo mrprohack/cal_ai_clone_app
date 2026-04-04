@@ -421,31 +421,35 @@ export default function ChatPage() {
                   <p>Loading conversation…</p>
                 </div>
               ) : (
-                messages.map((msg, i) => (
-                  <div key={i} className={`${styles.msgRow} ${msg.role === "user" ? styles.msgRowUser : ""}`}>
-                    {msg.role === "bot" && (
-                      <div className={styles.msgAvatar}>
-                        <span className="material-symbols-outlined">smart_toy</span>
+                messages.map((msg, i) => {
+                  const isLastBot = msg.role === "bot" && i === messages.length - 1;
+                  const isStreaming = isLastBot && streaming;
+                  return (
+                    <div key={i} className={`${styles.msgRow} ${msg.role === "user" ? styles.msgRowUser : ""}`}>
+                      {msg.role === "bot" && (
+                        <div className={`${styles.msgAvatar} ${isStreaming ? styles.msgAvatarStreaming : ""}`}>
+                          <span className="material-symbols-outlined">smart_toy</span>
+                        </div>
+                      )}
+                      <div className={`${styles.bubble} ${msg.role === "user" ? styles.bubbleUser : (isStreaming ? styles.bubbleBotStreaming : styles.bubbleBot)}`}>
+                        {msg.text === "" && streaming && isLastBot ? (
+                          <span className={styles.cursor} />
+                        ) : (
+                          <>
+                            <div className={styles.bubbleText} dangerouslySetInnerHTML={{ __html: renderMd(msg.text) }} />
+                            {isStreaming && <span className={styles.cursor} />}
+                          </>
+                        )}
+                        {msg.ts && !isStreaming && <div className={styles.bubbleTs}>{msg.ts}</div>}
                       </div>
-                    )}
-                    <div className={`${styles.bubble} ${msg.role === "user" ? styles.bubbleUser : styles.bubbleBot}`}>
-                      {msg.text === "" && streaming ? (
-                        <span className={styles.cursor}>▍</span>
-                      ) : (
-                        <div className={styles.bubbleText} dangerouslySetInnerHTML={{ __html: renderMd(msg.text) }} />
-                      )}
-                      {msg.role === "bot" && streaming && i === messages.length - 1 && msg.text !== "" && (
-                        <span className={styles.cursor}>▍</span>
-                      )}
-                      {msg.ts && <div className={styles.bubbleTs}>{msg.ts}</div>}
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
 
               {streaming && messages[messages.length - 1]?.text === "" && (
                 <div className={styles.msgRow}>
-                  <div className={styles.msgAvatar}>
+                  <div className={`${styles.msgAvatar} ${styles.msgAvatarStreaming}`}>
                     <span className="material-symbols-outlined">smart_toy</span>
                   </div>
                   <div className={`${styles.bubble} ${styles.bubbleBot} ${styles.typingBubble}`}>
