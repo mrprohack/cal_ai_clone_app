@@ -20,8 +20,8 @@
 | ------------- | ---------------------------- |
 | New page added (`app/*/page.tsx`) | § 4 file tree + § 17 priority list; add row to § 4 tree |
 | New CSS module added | § 4 file tree (add next to its page) |
-| New Server Action file | § 4 file tree + § 6 backend functions table |
-| New API route | § 4 file tree + § 7 API routes section |
+| New PHP API endpoint | § 4 file tree + § 6 PHP API table |
+| New Next.js API route | § 4 file tree + § 7 Next.js routes section |
 | New component | § 4 file tree (`components/` block) |
 | New lib/utility file | § 4 file tree (`lib/` block) |
 | DB schema change | § 5 database schema tables |
@@ -37,22 +37,23 @@ For each new file added to the tree, use this format:
 │   ├── filename.ext        # Short description — route or purpose
 ```
 
-
 ### Also update `AGENTS.md`
 
 If you add a new page route, update the **Page Map** table in `AGENTS.md`.  
-If you add a new API route or Server Action, update the **Key Server Actions** table.
+If you add/modify a PHP API endpoint, update the **PHP API Endpoints** table.
 
 ---
 
 ## 1. PROJECT IDENTITY
 
 **Name:** Cal AI  
-**Type:** AI-powered nutrition & calorie tracking SaaS product  
-**Stack:** Next.js 14 · MySQL (via `mysql2`) · Groq Llama 4 Vision (AI) · Vanilla CSS Modules  
+**Type:** AI-powered nutrition & calorie tracking SaaS  
+**Stack:** Next.js 14 (static export) · PHP 8 API · MySQL (via PDO) · Groq AI · Vanilla CSS Modules  
 **Root directory (web):** `/home/mrpro/mygit/cal_ai_clone/web/`  
-**Dev server:** `http://localhost:3004`  
-**Start command:** `cd web && npm run dev`
+**Dev server:** `http://localhost:3004` (Next.js hot-reload)  
+**Local full-stack:** `php -S 0.0.0.0:8080 -t web/out/` (PHP serves static + API)  
+**Start command:** `cd web && npm run dev`  
+**Build command:** `cd web && npm run build` → outputs `web/out/`
 
 ---
 
@@ -60,7 +61,8 @@ If you add a new API route or Server Action, update the **Key Server Actions** t
 
 > **RULE:** This agent manages ONLY the `web/` directory.  
 > Do NOT touch `mobile/` or any other sibling directories.  
-> The web app uses MySQL via Server Actions located at `web/lib/actions/`.
+> The web app uses PHP API endpoints in `web/public/api/` — NOT Next.js Server Actions.  
+> All frontend→backend calls go through `web/lib/phpApi.ts`.
 
 ---
 
@@ -68,16 +70,17 @@ If you add a new API route or Server Action, update the **Key Server Actions** t
 
 | Package | Version | Purpose |
 |---------|---------|---------|
-| `next` | 14.2.5 | App router framework |
+| `next` | 14.2.5 | Static export framework (`output: 'export'`) |
 | `react` / `react-dom` | ^18.3.1 | UI library |
-| `mysql2` | ^3.9 || MySQL database client |
 | `groq-sdk` | ^1.1.1 | AI meal analysis (Llama 4 Scout Vision) |
-| `openai` | ^4.47.0 | Fallback / FitBot chat |
 | `typescript` | ^5 | Static typing |
+| PHP | ^8.0 | Backend API (PDO + pdo_mysql) |
 
-**UI:** Vanilla CSS Modules — no TailwindCSS, no styled-components, no inline styles unless dynamic (e.g. plan color variables).  
-**Icons:** Material Symbols Outlined (loaded via Google Fonts CDN in layout.tsx).  
-**Fonts:** Space Grotesk (body) + Barlow Condensed (headings via `--font-heading` variable).
+**Backend pattern:** `POST /api/{resource}.php?action={action}` — JSON in, JSON out.  
+**API client:** `lib/phpApi.ts` — namespaced exports: `Auth`, `Users`, `Meals`, `Progress`.  
+**UI:** Vanilla CSS Modules — no TailwindCSS, no styled-components.  
+**Icons:** Material Symbols Outlined (Google Fonts CDN).  
+**Fonts:** Space Grotesk (body) + Barlow Condensed (headings).
 
 ---
 
@@ -86,11 +89,11 @@ If you add a new API route or Server Action, update the **Key Server Actions** t
 ```
 web/
 ├── app/
-│   ├── layout.tsx                  # Root layout — fonts, Auth provider, Navbar
+│   ├── layout.tsx                  # Root layout — fonts, AuthProvider, Navbar
 │   ├── manifest.ts                 # PWA Web Manifest
 │   ├── icon.svg                    # PWA App Icon
-│   ├── globals.css                 # Design tokens (CSS variables), resets, animations
-│   ├── page.tsx                    # Landing / home page  (route: /)
+│   ├── globals.css                 # Design tokens (CSS vars), resets, animations
+│   ├── page.tsx                    # Landing page (route: /)
 │   ├── page.module.css
 │   │
 │   ├── login/
@@ -109,310 +112,314 @@ web/
 │   │   └── Dashboard.module.css
 │   │
 │   ├── log/
-│   │   ├── page.tsx                # Log your meal — AI scan + meal list (route: /log)
-│   │   └── Log.module.css
+│   │   ├── page.tsx                # Meal logging + AI scan (route: /log)
+│   │   ├── Log.module.css
+│   │   └── hooks/
+│   │       ├── useFoodSearch.ts    # Food search hook
+│   │       ├── useMealLogging.ts   # Meal log/delete hook
+│   │       └── useProgressSync.ts  # Progress upsert hook
 │   │
 │   ├── progress/
-│   │   ├── page.tsx                # Progress charts (route: /progress)
+│   │   ├── page.tsx                # Progress charts & trends (route: /progress)
 │   │   └── Progress.module.css
 │   │
 │   ├── body-scan/
-│   │   ├── page.tsx                # Weekly body photo analyzer — AI vision (route: /body-scan)
+│   │   ├── page.tsx                # Weekly body photo analyzer (route: /body-scan)
 │   │   └── BodyScan.module.css
 │   │
 │   ├── meal-plan/
-│   │   ├── page.tsx                # 7-day AI meal planner (route: /meal-plan)
+│   │   ├── page.tsx                # AI 7-day meal planner (route: /meal-plan)
 │   │   └── MealPlan.module.css
 │   │
 │   ├── plans/
-│   │   ├── page.tsx                # Pricing — Free / Pro / Ultra (route: /plans)
+│   │   ├── page.tsx                # Pricing — Free/Pro/Ultra (route: /plans)
 │   │   └── Plans.module.css
 │   │
 │   ├── profile/
-│   │   ├── page.tsx                # User profile + goals + premium tab (route: /profile)
+│   │   ├── page.tsx                # User profile + goals (route: /profile)
 │   │   └── Profile.module.css
 │   │
 │   ├── chat/
 │   │   ├── page.tsx                # FitBot AI chat (route: /chat)
 │   │   └── Chat.module.css
 │   │
-│   ├── api/
-│   │   ├── analyze-meal/
-│   │   │   └── route.ts            # POST /api/analyze-meal — Groq vision analysis
-│   │   ├── analyze-body/
-│   │   │   └── route.ts            # POST /api/analyze-body — Groq body photo analysis
-│   │   ├── meal-plan/
-│   │   │   └── route.ts            # POST /api/meal-plan — AI 7-day meal plan generation
-│   │   └── chat/
-│   │       └── route.ts            # POST /api/chat — FitBot streaming chat
-│   │
-
+│   └── api/                        # Next.js Edge API routes (AI only)
+│       ├── analyze-meal/
+│       │   └── route.ts            # POST /api/analyze-meal — Groq vision → macros
+│       ├── analyze-body/
+│       │   └── route.ts            # POST /api/analyze-body — Groq body analysis
+│       ├── meal-plan/
+│       │   └── route.ts            # POST /api/meal-plan — AI 7-day plan generation
+│       └── chat/
+│           └── route.ts            # POST /api/chat — FitBot kimi-k2 streaming
 │
 ├── components/
-│   ├── Navbar.tsx                  # Top navigation (shared across all pages)
+│   ├── Navbar.tsx                  # Top/bottom navigation (shared)
 │   ├── Navbar.module.css
-│   └── AuthGuard.tsx               # Route protection wrapper
+│   └── AuthGuard.tsx               # Route protection wrapper (redirects to /login)
 │
 ├── lib/
-│   ├── actions/                    # ← WEB APP'S MYSQL SERVER ACTIONS
-│   ├── schema.ts                   # Database schema (source of truth)
-│   ├── auth.ts                     # signUp / signIn / signOut / getSessionUser
-│   ├── users.ts                    # getMe / getById / updateProfile / updatePlan / getUserPlan
-│   ├── meals.ts                    # log / byDate / remove / getTodayMeals
-│   ├── foods.ts                    # Quick Add foods listing and search
-│   ├── daily.ts                    # Daily summary helpers
-│   ├── progress.ts                 # Progress snapshots
-│   ├── seed.ts                     # Dev seed data
-│   ├── seedFoods.ts                # Dev seed data for Indian Foods list
-│   └── _generated/                 # AUTO-GENERATED — never edit manually
+│   ├── phpApi.ts                   # ← PHP API client (Auth/Users/Meals/Progress namespaces)
+│   └── auth-context.tsx            # useAuth() hook — session token in localStorage
 │
-└── lib/
-    ├── auth-context.tsx            # useAuth() hook — session token in localStorage
-    ├── db.ts                       # MySQL connection pool
-    └── actions/                    # SERVER ACTIONS (MySQL queries)
-        ├── auth.ts                 # signUp, signIn, signOut
-        ├── users.ts                # updateProfile, updatePlan
-        ├── meals.ts                # log, byDate, range
-        ├── progress.ts             # logWater, getDailyProgress, stats
-        ├── foods.ts                # search, list
-        ├── bodyPhotos.ts           # savePhoto, listPhotos
-        ├── mealPlans.ts            # savePlan, listPlans
-        └── daily.ts                # daily summary
+├── public/
+│   └── api/                        # PHP Backend (served by Apache/PHP-CLI alongside static)
+│       ├── db.php                  # PDO MySQL connection + env loader + jsonResponse()
+│       ├── auth.php                # signUp, signIn, signOut, getSessionUser
+│       ├── users.php               # getById, updateProfile, updatePlan, getUserPlan, deleteAccount
+│       ├── meals.php               # log, byDate, remove, getRecent, getTodayMeals, range
+│       ├── progress.php            # logWater, upsert, getDailyProgress, getStats, range, logWeight, getAchievements
+│       ├── foods.php               # search, list
+│       ├── bodyPhotos.php          # listPhotos, savePhoto, removePhoto
+│       └── mealPlans.php           # listPlans, savePlan, removePlan, togglePin
+│
+├── next.config.js                  # output: 'export', trailingSlash: true
+├── tsconfig.json
+├── package.json
+└── .env / .env.local               # DB credentials + GROQ_API_KEY
 ```
 
 ---
 
-## 5. DATABASE SCHEMA (MySQL)
+## 5. DATABASE SCHEMA (MySQL via PDO)
 
 ### `users` table
 | Field | Type | Notes |
 |-------|------|-------|
-| `name` | string | Display name |
-| `email` | string | Unique, indexed |
-| `passwordHash` | string | bcrypt — never expose to client |
-| `avatarUrl` | string? | Profile picture URL |
-| `calorieGoal` | number | kcal/day |
-| `proteinGoal` | number | g/day |
-| `carbsGoal` | number | g/day |
-| `fatGoal` | number | g/day |
-| `gender` | string? | "male" / "female" / "other" |
-| `ageYears` | number? | |
-| `heightCm` | number? | |
-| `weightKg` | number? | |
-| `createdAt` | number | Unix ms |
-| `plan` | "free"/"pro"/"ultra"? | Subscription plan |
-| `planActivatedAt` | number? | Unix ms |
-| `planExpiresAt` | number? | Unix ms (undefined = never) |
-
-Index: `by_email`
+| `id` | INT AUTO_INCREMENT PK | |
+| `name` | VARCHAR | Display name |
+| `email` | VARCHAR UNIQUE | |
+| `passwordHash` | VARCHAR | bcrypt — never expose |
+| `avatarUrl` | VARCHAR? | |
+| `calorieGoal` | INT | kcal/day |
+| `proteinGoal` | INT | g/day |
+| `carbsGoal` | INT | g/day |
+| `fatGoal` | INT | g/day |
+| `gender` | VARCHAR? | "male" / "female" / "other" |
+| `ageYears` | INT? | |
+| `heightCm` | FLOAT? | |
+| `weightKg` | FLOAT? | |
+| `activityLevel` | VARCHAR? | |
+| `goal` | VARCHAR? | "lose"/"maintain"/"gain" |
+| `plan` | VARCHAR | "free"/"pro"/"ultra" |
+| `planActivatedAt` | BIGINT? | Unix ms |
+| `createdAt` | BIGINT | Unix ms |
 
 ### `sessions` table
 | Field | Type | Notes |
 |-------|------|-------|
-| `userId` | Id<"users"> | |
-| `token` | string | 64-char hex, stored in localStorage |
-| `expiresAt` | number | Unix ms |
-| `createdAt` | number | Unix ms |
-
-Indexes: `by_token`, `by_user`
+| `id` | INT PK | |
+| `userId` | INT FK→users | |
+| `token` | VARCHAR(64) UNIQUE | 64-char hex, stored in localStorage |
+| `expiresAt` | BIGINT | Unix ms |
+| `createdAt` | BIGINT | Unix ms |
 
 ### `meals` table
 | Field | Type | Notes |
 |-------|------|-------|
-| `userId` | Id<"users"> | |
-| `name` | string | Food name |
-| `mealType` | string | "breakfast"/"lunch"/"dinner"/"snack" |
-| `calories` | number | kcal |
-| `proteinG` | number | grams |
-| `carbsG` | number | grams |
-| `fatG` | number | grams |
-| `servingSize` | string? | e.g. "1 plate (~320g)" |
-| `date` | string | ISO: "2026-03-20" |
-| `loggedAt` | number | Unix ms |
-| `aiGenerated` | boolean? | true if from AI scan |
-
-Indexes: `by_user_date`, `by_user`
+| `id` | INT PK | |
+| `userId` | INT FK→users | |
+| `name` | VARCHAR | Food name |
+| `mealType` | VARCHAR | "breakfast"/"lunch"/"dinner"/"snack" |
+| `calories` | INT | kcal |
+| `proteinG` | FLOAT | grams |
+| `carbsG` | FLOAT | grams |
+| `fatG` | FLOAT | grams |
+| `servingSize` | VARCHAR? | e.g. "1 plate (~320g)" |
+| `date` | DATE | ISO: "2026-03-20" |
+| `loggedAt` | BIGINT | Unix ms |
+| `aiGenerated` | TINYINT(1) | 1 if AI-scanned |
 
 ### `progress` table
 | Field | Type | Notes |
 |-------|------|-------|
-| `userId` | Id<"users"> | |
-| `date` | string | ISO date |
-| `weightKg` | number? | |
-| `caloriesConsumed` | number | |
-| `proteinConsumed` | number | |
-| `carbsConsumed` | number | |
-| `fatConsumed` | number | |
-| `waterMl` | number? | |
-| `steps` | number? | |
-| `recordedAt` | number | Unix ms |
-
-Indexes: `by_user_date`, `by_user`
+| `id` | INT PK | |
+| `userId` | INT FK→users | |
+| `date` | DATE | ISO date |
+| `weightKg` | FLOAT? | |
+| `caloriesConsumed` | INT | |
+| `proteinConsumed` | INT | |
+| `carbsConsumed` | INT | |
+| `fatConsumed` | INT | |
+| `waterMl` | INT? | |
+| `steps` | INT? | |
+| `recordedAt` | BIGINT | Unix ms |
 
 ### `foods` table (Quick Add)
 | Field | Type | Notes |
 |-------|------|-------|
-| `name` | string | Food name |
-| `cals` | number | kcal |
-| `protein` | number | grams |
-| `carbs` | number | grams |
-| `fat` | number | grams |
-| `emoji` | string | |
-| `cat` | string | "Protein", "Carbs", etc. |
-
-Index: `search_name` (Search index on `name` with `cat` filter)
+| `id` | INT PK | |
+| `name` | VARCHAR | Food name |
+| `cals` | INT | kcal |
+| `protein` | FLOAT | grams |
+| `carbs` | FLOAT | grams |
+| `fat` | FLOAT | grams |
+| `emoji` | VARCHAR | |
+| `cat` | VARCHAR | "Protein", "Carbs", etc. |
 
 ### `bodyPhotos` table
 | Field | Type | Notes |
 |-------|------|-------|
-| `userId` | Id<"users"> | |
-| `date` | string | ISO date |
-| `imageData` | string? | Base64 thumbnail |
-| `analysis` | string? | AI analysis JSON |
-| `weekLabel` | string? | e.g. "Week 1" |
-| `notes` | string? | User notes |
-| `recordedAt` | number | Unix ms |
-
-Indexes: `by_user_date`, `by_user`
+| `id` | INT PK | |
+| `userId` | INT FK→users | |
+| `date` | DATE | |
+| `imageData` | MEDIUMTEXT? | Base64 thumbnail |
+| `analysis` | MEDIUMTEXT? | AI analysis JSON |
+| `weekLabel` | VARCHAR? | e.g. "Week 1" |
+| `notes` | TEXT? | |
+| `recordedAt` | BIGINT | Unix ms |
 
 ### `mealPlans` table
 | Field | Type | Notes |
 |-------|------|-------|
-| `userId` | Id<"users"> | |
-| `createdDate` | string | ISO date |
-| `planJson` | string | Full plan JSON |
-| `planName` | string | Human-readable name |
-| `calorieTarget` | number | kcal goal used |
-| `isPinned` | boolean? | Pinned/saved |
-| `createdAt` | number | Unix ms |
-
-Indexes: `by_user`, `by_user_date`
-
----
-
-## 6. BACKEND SERVER ACTIONS (web/lib/actions/)
-
-### Auth (`actions/auth.ts`)
-| Function | Type | Description |
-|----------|------|-------------|
-| `getSessionUser` | query | Get current user from session token |
-| `signUp` | action | Create user + session, returns `{ token }` |
-| `signIn` | action | Verify password + create session, returns `{ token }` |
-| `signOut` | action | Delete session |
-
-### Users (`actions/users.ts`)
-| Function | Type | Description |
-|----------|------|-------------|
-| `getById` | query | Get user by ID (no passwordHash) |
-| `updateProfile` | mutation | Patch profile fields |
-| `updatePlan` | mutation | Set plan: "free"/"pro"/"ultra" |
-| `getUserPlan` | query | Get `{ plan, planActivatedAt, planExpiresAt }` |
-
-### Meals (`actions/meals.ts`)
-| Function | Type | Description |
-|----------|------|-------------|
-| `log` | mutation | Insert a meal entry |
-| `byDate` | query | Get meals for userId + date |
-| `remove` | mutation | Delete a meal by ID |
-| `getRecent` | query | Get a user's recently logged unique meals |
-
-### Progress (`actions/progress.ts`)
-| Function | Type | Description |
-|----------|------|-------------|
-| `logWater` | mutation | Add water intake for a given date |
-| `getDailyProgress` | query | Get progress snapshot for a date |
-| `getStats` | query | Aggregated stats, calorie trend & streak |
-
-### Body Photos (`actions/bodyPhotos.ts`)
-| Function | Type | Description |
-|----------|------|-------------|
-| `savePhoto` | mutation | Save or update a body check-in with AI analysis |
-| `listPhotos` | query | List all photos newest-first |
-
-### Meal Plans (`actions/mealPlans.ts`)
-| Function | Type | Description |
-|----------|------|-------------|
-| `savePlan` | mutation | Save a generated 7-day plan |
-| `listPlans` | query | List all plans for user |
+| `id` | INT PK | |
+| `userId` | INT FK→users | |
+| `planName` | VARCHAR | Human-readable name |
+| `planJson` | MEDIUMTEXT | Full 7-day plan JSON |
+| `calorieTarget` | INT | kcal target used |
+| `isPinned` | TINYINT(1) | 0/1 |
+| `createdDate` | DATE | |
+| `createdAt` | BIGINT | Unix ms |
 
 ---
 
-## 7. API ROUTES
+## 6. PHP API ENDPOINTS (`web/public/api/`)
+
+> **Pattern:** `POST /api/{resource}.php?action={action}` with JSON body.  
+> **Response:** Always JSON. Error responses use `http_response_code(4xx/5xx)`.
+
+### `auth.php`
+| Action | Input | Output |
+|--------|-------|--------|
+| `signUp` | `{name, email, password}` | `{token, userId}` |
+| `signIn` | `{email, password}` | `{token, userId}` |
+| `signOut` | `{token}` | `{ok}` |
+| `getSessionUser` | `{token}` | `{user}` |
+
+### `users.php`
+| Action | Input | Output |
+|--------|-------|--------|
+| `getById` | `{userId}` | `{user}` |
+| `updateProfile` | `{userId, fields:{...}}` | `{ok}` |
+| `updatePlan` | `{userId, plan}` | `{ok}` |
+| `getUserPlan` | `{userId}` | `{plan, planActivatedAt}` |
+| `deleteAccount` | `{userId}` | `{ok}` |
+| `exportData` | `{userId}` | `{meals, progress}` |
+
+### `meals.php`
+| Action | Input | Output |
+|--------|-------|--------|
+| `log` | `{args:{userId,name,mealType,...}}` | `{id}` |
+| `byDate` | `{userId, date}` | `{meals:[]}` |
+| `remove` | `{id}` | `{ok}` |
+| `getRecent` | `{userId, limit?}` | `{meals:[]}` |
+| `getTodayMeals` | `{userId, date}` | `{meals:[]}` |
+| `range` | `{userId, fromDate, toDate}` | `{meals:[]}` |
+
+### `progress.php`
+| Action | Input | Output |
+|--------|-------|--------|
+| `logWater` | `{userId, date, waterMl}` | `{id}` |
+| `upsert` | `{args:{userId, date, ...}}` | `{id}` |
+| `getDailyProgress` | `{userId, date}` | `{progress}` |
+| `getStats` | `{userId, fromDate, toDate}` | `{avgCalories, streak, ...}` |
+| `range` | `{userId, fromDate, toDate}` | `{rows:[]}` |
+| `logWeight` | `{userId, date, weightKg}` | `{ok}` |
+| `getAchievements` | `{userId}` | `{achievements:[]}` |
+
+### `foods.php`
+| Action | Input | Output |
+|--------|-------|--------|
+| `search` | `{query, category?}` | `{foods:[]}` |
+| `list` | `{category?}` | `{foods:[]}` |
+
+### `bodyPhotos.php`
+| Action | Input | Output |
+|--------|-------|--------|
+| `listPhotos` | `{userId}` | `{photos:[]}` |
+| `savePhoto` | `{userId, date, imageData?, analysis?, ...}` | `{id}` |
+| `removePhoto` | `{id, userId}` | `{ok}` |
+
+### `mealPlans.php`
+| Action | Input | Output |
+|--------|-------|--------|
+| `listPlans` | `{userId}` | `{plans:[]}` |
+| `savePlan` | `{userId, planJson, planName, calorieTarget}` | `{id}` |
+| `removePlan` | `{id, userId}` | `{ok}` |
+| `togglePin` | `{id, userId}` | `{ok}` |
+
+---
+
+## 7. NEXT.JS AI API ROUTES (Edge Runtime)
+
+These routes **stay** as Next.js server routes (they require the GROQ_API_KEY and stream responses). They are NOT static and require the Next.js dev server or a serverless host.
 
 ### `POST /api/analyze-meal`
-- **Runtime:** Node.js
 - **AI:** Groq `meta-llama/llama-4-scout-17b-16e-instruct` (vision)
-- **Input:** `FormData` with `image` field (base64 or blob)
-- **Output:** JSON `{ name, confidence, servingSize, calories, proteinG, carbsG, fatG, notes }`
-- **Key:** `GROQ_API_KEY` env variable
+- **Input:** `FormData` with `image` (base64 blob)
+- **Output:** `{ name, confidence, servingSize, calories, proteinG, carbsG, fatG, notes }`
 
 ### `POST /api/analyze-body`
-- **Runtime:** Node.js
-- **AI:** Groq `meta-llama/llama-4-scout-17b-16e-instruct` (vision)
-- **Input:** JSON `{ imageBase64, mimeType?, previousAnalysis? }`
-- **Output:** JSON `{ bodyFat, muscleDefinition, visibleMuscleGroups, posture, estimatedBMICategory, fitnessLevel, strengths, areasForImprovement, weeklyChange, progressScore, notes, recommendations }`
-- **Key:** `GROQ_API_KEY` env variable
+- **AI:** Groq Llama 4 Scout Vision
+- **Input:** `{ imageBase64, mimeType?, previousAnalysis? }`
+- **Output:** Full body composition analysis JSON
 
 ### `POST /api/meal-plan`
-- **Runtime:** Node.js
-- **AI:** Groq `meta-llama/llama-4-scout-17b-16e-instruct`
-- **Input:** JSON `{ calorieGoal, proteinGoal, carbsGoal, fatGoal, preferences?, restrictions?, userName? }`
-- **Output:** Complete 7-day meal plan JSON with meals, shopping list, weekly totals
-- **Key:** `GROQ_API_KEY` env variable
-
-### Auth API Routes
-
-| Endpoint | Method | Description |
-| :--- | :--- | :--- |
-| `/api/auth/signup` | POST | Create new user and return JSON session token |
-| `/api/auth/signin` | POST | Check credentials and return session token |
-| `/api/auth/signout` | POST | Revoke a session token from the DB |
-| `/api/auth/session` | POST | Resolve user from an existing session token string |
+- **AI:** Groq Llama 4 Scout
+- **Input:** `{ calorieGoal, proteinGoal, carbsGoal, fatGoal, preferences?, restrictions? }`
+- **Output:** Complete 7-day meal plan JSON
 
 ### `POST /api/chat`
-
-- **AI:** Groq / OpenAI streaming
+- **AI:** Groq `moonshotai/kimi-k2-instruct`
 - **Input:** `{ messages: ChatMessage[] }`
-- **Output:** Stream of text chunks (FitBot responses)
+- **Output:** SSE stream of text chunks
 
 ---
 
 ## 8. AUTH PATTERN
 
-The web app uses **custom session-based auth** — NOT Clerk, NOT NextAuth.
+Custom session-based auth — NOT Clerk, NOT NextAuth.
 
 ```
-User → signUp/signIn action
-     → bcrypt hash in Action (Node env)
-     → creates session {token: 64-char hex}
-     → token stored in localStorage (key: "calai_session")
-     → AuthProvider queries getSessionUser({token}) reactively
+User → signUp/signIn (POST /api/auth.php)
+     → PHP: bcrypt_verify → creates session {token: 64-char hex}
+     → Response: { token, userId }
+     → Stored in localStorage: "calai_session"
+     → AuthProvider reads token → POST /api/auth.php?action=getSessionUser
      → user object available via useAuth() across all pages
 ```
 
 **Never** use Clerk or any external auth provider.  
 **Never** store raw passwords.  
-**Always** pass `userId` (from `useAuth().user._id`) explicitly to mutations that need it.
+**Auth token** is passed as `token` field in JSON body (not as Authorization header in PHP API).
 
 ---
 
 ## 9. FRONTEND PATTERNS
 
-### Getting user + plan
+### Using PHP API client
 ```tsx
-const { user, loading } = useAuth();
-const userId = user?._id ? (user._id as unknown as Id<"users">) : null;
-const planInfo = useQuery(api.users.getUserPlan, userId ? { userId } : "skip");
+import { Auth, Users, Meals, Progress } from "@/lib/phpApi";
+
+// Get current user
+const { user } = useAuth();
+const userId = user?.id ? Number(user.id) : null;
+
+// Fetch meals
+const meals = await Meals.byDate(userId, today);
+
+// Log progress
+await Progress.upsert({ userId, date: today, caloriesConsumed: 1800 });
 ```
 
-### Calling a mutation
+### Getting user plan
 ```tsx
-const doUpdate = useMutation(api.users.updateProfile);
-await doUpdate({ userId: user._id as Id<"users">, calorieGoal: 2000 });
+const res = await Users.getUserPlan(userId);
+const plan = res?.plan ?? "free";
 ```
 
 ### Import alias
-The `@/` alias resolves to `web/` root. Always use `@/lib/actions` instead of relative paths when calling actions.
+The `@/` alias resolves to `web/`. Always use `@/lib/phpApi` for backend calls.
 
 ---
 
@@ -420,7 +427,7 @@ The `@/` alias resolves to `web/` root. Always use `@/lib/actions` instead of re
 
 ### CSS Variables (defined in globals.css)
 ```
---bg                  Dark page background
+--bg                  Dark page background (#09090b)
 --surface             Card background
 --surface-elevated    Elevated card / input background
 --border              Subtle divider
@@ -432,34 +439,27 @@ The `@/` alias resolves to `web/` root. Always use `@/lib/actions` instead of re
 --accent-green        #10e56b
 --accent-purple       #8b5cf6
 --accent-yellow       #fbbf24
+--protein             Protein macro color
+--carbs               Carbs macro color
 --fat                 Fat macro color
 --radius-sm/md/lg/xl  Border radius tokens
 --ease-out            Easing curve
---ease-spring         Spring easing
---font-heading        Barlow Condensed (uppercase, athletic)
+--font-heading        Barlow Condensed
 ```
 
 ### Component conventions
-- Every page has its own `Page.module.css` file — no global CSS in page files
-- Use `fadeInUp` animation for page sections (defined in globals.css)
+- Every page has its own `Page.module.css` — no global CSS in page files
+- Use `fadeInUp` animation for page sections (globals.css)
 - All interactive elements must have `id` attributes for testing
 - Touch targets ≥ 44×44px on mobile
-- Material Symbols icons: always `<span className="material-symbols-outlined">{icon_name}</span>`
-
-### Plan color palette
-| Plan | Color | Glow |
-|------|-------|------|
-| Free | `#4d6075` | `rgba(77,96,117,0.3)` |
-| Pro | `#3b96f5` | `rgba(59,150,245,0.35)` |
-| Ultra | `#a855f7` | `rgba(168,85,247,0.35)` |
+- Icons: `<span className="material-symbols-outlined">{icon_name}</span>`
 
 ---
 
 ## 11. NAVBAR
 
 **File:** `web/components/Navbar.tsx`  
-**Features:** Desktop top navigation and mobile bottom horizontally-scrolling navigation bar.
-**Routes (in order):**
+Desktop top navigation + mobile bottom nav.
 
 | Label | Route | Icon |
 |-------|-------|------|
@@ -472,22 +472,19 @@ The `@/` alias resolves to `web/` root. Always use `@/lib/actions` instead of re
 | FitBot | `/chat` | `smart_toy` |
 | Profile | `/profile` | `person` |
 
-Right CTA: "Log Meal" → `/log` (Displays properly on both desktop and mobile menu)
+Right CTA: "Log Meal" → `/log`
 
 ---
 
 ## 12. PLANS / SUBSCRIPTION
 
-Three tiers, stored in `users.plan`:
-
 | Plan | Price | Key limits |
 |------|-------|-----------|
 | `free` | $0 | 5 AI scans/day, 7-day history, 10 FitBot msgs/day |
 | `pro` | $9/mo | Unlimited scans, full analytics, export |
-| `ultra` | $19/mo | Everything Pro + body scan, meal planning, priority AI |
+| `ultra` | $19/mo | Pro + body scan, meal planning, priority AI |
 
-**Changing plan:** Call `users.updatePlan({ userId, plan })`.  
-**Reading plan:** Call `users.getUserPlan({ userId })` — returns `{ plan, planActivatedAt, planExpiresAt }`.
+**Changing plan:** `Users.updatePlan(userId, plan)` via phpApi.ts.
 
 ---
 
@@ -495,14 +492,13 @@ Three tiers, stored in `users.plan`:
 
 ```
 User taps "Scan Meal" on /log
-  → file input opens → image selected
-  → image converted to base64
-  → POST /api/analyze-meal with FormData
-  → Groq Llama 4 Vision analyzes image
-  → Returns JSON: { name, confidence, servingSize, calories, proteinG, carbsG, fatG }
+  → image selected → base64 encoded
+  → POST /api/analyze-meal (Next.js Edge route)
+  → Groq Llama 4 Vision → returns macros JSON
   → UI shows result card
   → User taps "Log This Meal"
-  → calls meals.log() action → saved to MySQL
+  → Meals.log({...}) → POST /api/meals.php?action=log → MySQL
+  → Progress.upsert({...}) → POST /api/progress.php?action=upsert
 ```
 
 ---
@@ -510,301 +506,149 @@ User taps "Scan Meal" on /log
 ## 14. CODING RULES
 
 1. **TypeScript only.** No `.js` files in `app/` or `components/`.
-2. **"use client"** at the top of any component using hooks, browser APIs, or event handlers.
-3. **Never hardcode SQL statements** — always use parameterized queries to avoid injection.
-4. **Run `npx tsc --noEmit` after every change** to verify zero TypeScript errors.
-5. **CSS Modules only.** Never use global class names in `.module.css` files.
-6. **No `any` casts** unless bridging untyped raw database rows (add a TODO comment).
-7. **Accessibility:** All buttons need `aria-label` if icon-only. All interactive lists need `role`.
-8. **Animations:** Always include `@media (prefers-reduced-motion: reduce)` override for any `@keyframes`.
-9. **Error states:** All async operations must handle loading, success, and error states in the UI.
-10. **IDs:** Every interactive element needs a unique `id` attribute (format: `page-component-action`).
-11. **Temporary Files & Organization:** Always create scratch scripts, debug logs, or one-off data files (like Lighthouse reports) inside the `/tmp/` directory. Do not clutter the `web/` or project root directories with temporary artifacts. Keep file organization pristine.
+2. **"use client"** at the top of every page and component (all pages are static client-side).
+3. **Never write raw SQL in pages** — all DB access goes through PHP API via phpApi.ts.
+4. **Run `npx tsc --noEmit` after every change** — zero errors required.
+5. **CSS Modules only.** Never use global class names inside `.module.css` files.
+6. **No `any` casts** unless bridging untyped PHP response rows (add a TODO comment).
+7. **Accessibility:** icon-only buttons need `aria-label`. Lists need `role`.
+8. **Animations:** Always add `@media (prefers-reduced-motion: reduce)` override for `@keyframes`.
+9. **Error states:** All async operations must handle loading, success, and error in the UI.
+10. **IDs:** Every interactive element needs a unique `id` (format: `page-component-action`).
+11. **Temp files:** Write scratch scripts and debug logs to `/tmp/` — never clutter `web/`.
+12. **phpApi.ts is the single source of truth** — add any new PHP API calls as methods there.
 
 ---
 
 ## 15. ENVIRONMENT VARIABLES
 
 | Variable | Used in | Purpose |
-|----------|---------|---------|
-| `GROQ_API_KEY` | Server Actions / API | Groq AI API key |
-| `DB_HOST` | `lib/db.ts` | MySQL Host |
-| `DB_USER` | `lib/db.ts` | MySQL User |
-| `DB_PASSWORD` | `lib/db.ts` | MySQL Password |
-| `DB_DATABASE` | `lib/db.ts` | MySQL Database |
+|----------|---------|---------| 
+| `GROQ_API_KEY` | Next.js API routes | Groq AI API key |
+| `DB_HOST` | `public/api/db.php` | MySQL host |
+| `DB_PORT` | `public/api/db.php` | MySQL port (default 3306) |
+| `DB_DATABASE` | `public/api/db.php` | MySQL database name |
+| `DB_USERNAME` | `public/api/db.php` | MySQL username |
+| `DB_PASSWORD` | `public/api/db.php` | MySQL password |
 
 ---
 
 ## 16. RUNNING THE PROJECT
 
-### Local Development
+### Local Development (hot-reload, no PHP API)
 ```bash
-# Start web dev server (runs on port 3004)
-cd web && npm run dev
-
-# Type-check
-cd web && npx tsc --noEmit
-
-# Database dev
-# (Use standard MySQL client to modify schema as needed)
-
-# Build for production
-cd web && npm run build
+cd web && npm run dev    # http://localhost:3004
+# Note: PHP API endpoints (/api/*.php) won't work in this mode
 ```
 
-### Production (via SSH)
+### Local Full-Stack (static + PHP API)
 ```bash
-# SSH into production server
-ssh host
+cd web && npm run build  # build to web/out/
+php -S 0.0.0.0:8080 -t web/out/
+# Open http://localhost:8080
+# PHP executes api/*.php and serves static files
+```
 
-# Start / restart the Next.js production server
-cd /home/u697986122/domains/lightgreen-spider-622425.hostingersite.com
-pm2 restart cal-ai-web
-# — or start fresh —
-pm2 start npm --name cal-ai-web -- start
+### SSH tunnel (local dev against production DB)
+```bash
+ssh -N -L 3306:auth-db1873.hstgr.io:3306 host &
+# Then use DB_HOST=127.0.0.1 in .env.local
+```
 
-# Check logs
-pm2 logs cal-ai-web --lines 50
+### Type check
+```bash
+cd web && npx tsc --noEmit
+```
 
-# Check status
-pm2 status
+### Production (Hostinger — No Node.js/PM2 needed)
+```bash
+# Build locally
+cd web && npm run build
+
+# Upload web/out/ to server's public_html/
+rsync -avz web/out/ u697986122@147.93.99.163:/home/u697986122/domains/lightgreen-spider-622425.hostingersite.com/public_html/
+
+# Apache serves static files + PHP API automatically — no PM2
 ```
 
 ### 🔑 Test Credentials
-For accessing authenticated routes/pages directly inside testing:
 - **Email:** `demo@calai.app`
 - **Password:** `Demo1234!`
 
 ---
 
-## 17. WHAT THIS AGENT SHOULD PRIORITIZE
+## 17. SSH & DEPLOYMENT
 
-When given a task, the agent should:
+### SSH Config (`~/.ssh/config`)
 
-1. **Read this file first** to understand context.
-2. **Check existing pages** before creating new ones — avoid duplication.
-3. **Always update the DB schema documentation** if adding new data fields to MySQL.
-4. **Always add the corresponding Server Action** in the right module file.
-5. **Keep the Navbar updated** when adding new routes.
-6. **Run TypeScript check** before reporting completion.
-7. **Use the existing design system** — CSS variables, Material Symbols icons, CSS Modules.
-8. **Never hardcode data** — always query data via Server Actions/MySQL queries.
-9. **Test in browser** after implementation by screenshotting key flows.
-10. **Maintain the premium UX standard** — dark theme, smooth animations, glassmorphism cards.
-11. **⚠️ UPDATE AGENT.md + AGENTS.md** — after ANY file addition, deletion, or rename, update § 4 file tree, relevant tables in this file, AND the Page Map / Server Actions tables in `AGENTS.md`. This is non-negotiable. See § 0 for the full rule.
-
----
-
-## 18. AGENT.md CURRENT FILE TREE CHECKLIST
-
-Use this as a quick audit checklist. Every file in `web/` (excluding `_generated/` and `node_modules/`) should appear in § 4.
-
-```
-web/
-├── app/
-│   ├── layout.tsx                  # Root layout — fonts, Auth provider, Navbar
-│   ├── manifest.ts                 # PWA Web Manifest
-│   ├── icon.svg                    # PWA App Icon
-│   ├── globals.css                 # Design tokens (CSS variables), resets, animations
-│   ├── page.tsx                    # Landing / home page  (route: /)
-│   ├── page.module.css
-│   │
-
-│   │
-│   ├── login/
-│   │   ├── page.tsx                # Login form (route: /login)
-│   │   └── auth.module.css
-│   │
-│   ├── signup/
-│   │   └── page.tsx                # Sign-up form (route: /signup)
-│   │
-│   ├── onboarding/
-│   │   ├── page.tsx                # Post-signup setup (route: /onboarding)
-│   │   └── Onboarding.module.css
-│   │
-│   ├── dashboard/
-│   │   ├── page.tsx                # Today overview (route: /dashboard)
-│   │   └── Dashboard.module.css
-│   │
-│   ├── log/
-│   │   ├── page.tsx                # Log your meal — AI scan + meal list (route: /log)
-│   │   └── Log.module.css
-│   │
-│   ├── progress/
-│   │   ├── page.tsx                # Progress charts (route: /progress)
-│   │   └── Progress.module.css
-│   │
-│   ├── plans/
-│   │   ├── page.tsx                # Pricing — Free / Pro / Ultra (route: /plans)
-│   │   └── Plans.module.css
-│   │
-│   ├── profile/
-│   │   ├── page.tsx                # User profile + goals + premium tab (route: /profile)
-│   │   └── Profile.module.css
-│   │
-│   ├── chat/
-│   │   ├── page.tsx                # FitBot AI chat (route: /chat)
-│   │   └── Chat.module.css
-│   │
-│   └── api/
-│       ├── analyze-meal/
-│       │   └── route.ts            # POST /api/analyze-meal — Groq vision analysis
-│       └── chat/
-│           └── route.ts            # POST /api/chat — FitBot streaming chat
-│
-├── components/
-│   ├── Navbar.tsx                  # Top navigation (shared across all pages)
-│   ├── Navbar.module.css
-│   └── AuthGuard.tsx               # Route protection wrapper
-│
-├── lib/
-│   ├── actions/                    # ← WEB APP'S MYSQL SERVER ACTIONS
-│   ├── schema.ts                   # Database schema (source of truth)
-│   ├── auth.ts                     # signUp / signIn / signOut / getSessionUser
-│   ├── users.ts                    # getMe / getById / updateProfile / updatePlan / getUserPlan
-│   ├── meals.ts                    # log / byDate / remove / getTodayMeals / getRecent
-│   ├── foods.ts                    # Quick Add foods listing and search
-│   ├── daily.ts                    # Daily summary helpers
-│   ├── progress.ts                 # Progress snapshots
-│   ├── seed.ts                     # Dev seed data
-│   ├── seedFoods.ts                # Dev seed data for Indian Foods list
-│   └── _generated/                 # AUTO-GENERATED — never edit manually
-│
-└── lib/
-    └── auth-context.tsx            # useAuth() hook — session token in localStorage
-```
-
----
-
-## 19. SSH & DEPLOYMENT (Production Server)
-
-### SSH Config (local `~/.ssh/config`)
-
-| Alias | HostName | User | Port | IdentityFile |
-|-------|----------|------|------|--------------|
-| `host` | `147.93.99.163` | `u697986122` | `65002` | `~/.ssh/id_ed25519` |
-| `test` | `192.168.1.4` | `mrpro` | `22` | `~/.ssh/id_ed25519` |
-
-**Quick connect:** `ssh host`
+| Alias | HostName | User | Port |
+|-------|----------|------|------|
+| `host` | `147.93.99.163` | `u697986122` | `65002` |
 
 ### Production URLs
 
 | Purpose | URL |
 |---------|-----|
 | Live site | `https://lightgreen-spider-622425.hostingersite.com` |
-| Hostinger panel | Hostinger hPanel |
+| Hostinger hPanel | https://hpanel.hostinger.com |
 
 ### Server Paths
 
 | Path | Purpose |
 |------|---------|
-| `/home/u697986122/domains/lightgreen-spider-622425.hostingersite.com/` | Project root (Next.js app) |
-| `…/public_html/` | Apache document root |
-| `…/public_html/.htaccess` | URL rewrite rules → `index.php` |
-| `…/public_html/index.php` | PHP reverse proxy → `http://127.0.0.1:3000` |
+| `/home/u697986122/domains/lightgreen-spider-622425.hostingersite.com/public_html/` | Apache document root |
+| `…/public_html/api/` | PHP API endpoints |
+| `…/public_html/_next/` | Static JS/CSS assets |
 | `…/.env` | Production environment variables |
-| `…/.next/` | Next.js production build output |
-| `…/node_modules/` | Dependencies |
 
-### How the Production Stack Works
-
+### Production Stack (PHP-only, no PM2)
 ```
-Browser → Hostinger Apache (port 443)
-       → .htaccess rewrites all routes to index.php
-       → index.php (PHP cURL reverse proxy)
-       → http://127.0.0.1:3000 (Next.js via pm2)
+Browser → Apache (port 443/80)
+       → serves static HTML/JS/CSS from public_html/
+       → PHP executes public_html/api/*.php directly
+       → PHP PDO → MySQL DB
 ```
 
-1. **Apache** serves `public_html/` and applies `.htaccess` rewrite rules.
-2. **`.htaccess`** catches all requests (static `_next/*` assets and dynamic routes) and routes them to `index.php`.
-3. **`index.php`** is a PHP cURL reverse proxy that forwards requests to `http://127.0.0.1:3000`.
-4. **pm2** keeps the Next.js production server (`npm start`) alive on port 3000.
+> **Note:** The old PM2 / Node.js / proxy setup has been removed. Production now runs as pure static + PHP.
 
-### Process Management (pm2)
+---
 
-| Command | Purpose |
-|---------|---------|
-| `pm2 start npm --name cal-ai-web -- start` | Start Next.js in production |
-| `pm2 restart cal-ai-web` | Restart after deploy |
-| `pm2 stop cal-ai-web` | Stop the server |
-| `pm2 logs cal-ai-web --lines 50` | View recent---
-
-## 19. AUTH GUARD & ROUTE PROTECTION
+## 18. AUTHGUARD & ROUTE PROTECTION
 
 **File:** `web/components/AuthGuard.tsx`
 
-The `AuthGuard` is a higher-order component (HOC) used to protect specific pages (routes) from unauthenticated access.
-
-### Usage Pattern
-
-Pages are wrapped in their main export:
+Wraps protected pages to redirect unauthenticated users to `/login`.
 
 ```tsx
 export default function DashboardPage() {
   return (
     <AuthGuard>
-      {/* page content here */}
+      {/* page content */}
     </AuthGuard>
   );
 }
 ```
 
-### Features
-
-1. **Hydration Loading**: Prevents flashing of unauthorized content until `authLoading` is finished.
-2. **Auto-Redirect**: Uses `useRouter().push('/login')` if no `user` object is resolved.
-3. **Session Awareness**: Integrated directly with `useAuth` hook and `AuthContext`.
-
----
-
-## 20. AUTHENTICATION STRATEGY
-
-1. **Tokens**: 64-char hex random strings stored in `localStorage` (`calai_session`) on the client.
-2. **Session DB**: Token is mapped to a `userId` in the `sessions` MySql table.
-3. **Expiry**: 30-day rolling expiration on every session verification.
-4. **Guards**: `AuthGuard.tsx` for client-side redirection. High-security server actions should use `getSessionUser()` for server-side verification.
--|
-| `pm2 logs cal-ai-web --lines 50` | View recent logs |
-| `⚠️ Proxy Error: Failed to connect to 127.0.0.1 port 3000` | Next.js not running | `ssh host` → `cd …` → `pm2 start npm --name cal-ai-web -- start` |
-| pm2 process shows `errored` | Build issue or missing deps | Check `pm2 logs`, run `npm install`, rebuild |
-| Site loads but pages 404 | Missing `.next/` build | Rebuild and redeploy |
-| CSS/JS not loading | `_next/` assets not proxied | Verify `.htaccess` has the `_next` rewrite rule |
-
-> **Last audited:** April 2, 2026
-> **Auditor:** Assistant (Lighthouse Audit + React 18 Material Icon Font Bugfix)
+**Features:**
+1. Waits for `authLoading` to resolve before rendering (prevents flash)
+2. Redirects to `/login` if no user
+3. Integrated with `useAuth()` hook from `auth-context.tsx`
 
 ---
 
-## 19. AUTH GUARD & ROUTE PROTECTION
+## 19. WHAT THIS AGENT SHOULD PRIORITIZE
 
-**File:** `web/components/AuthGuard.tsx`
+1. **Read this file first** to understand context.
+2. **Check existing pages** before creating new ones — avoid duplication.
+3. **Add PHP API actions** in the correct `public/api/*.php` file and expose via `phpApi.ts`.
+4. **Always update the DB schema** documentation if adding new MySQL fields.
+5. **Keep the Navbar** updated when adding new routes.
+6. **Run TypeScript check** before reporting task complete.
+7. **Use the existing design system** — CSS variables, Material Symbols, CSS Modules.
+8. **Never hardcode data** — always call via phpApi.ts methods.
+9. **Test in browser** after implementation (screenshot key flows).
+10. **Maintain premium UX** — dark theme, smooth animations, glassmorphism cards.
+11. **⚠️ UPDATE AGENT.md + AGENTS.md** after ANY file change — non-negotiable (§ 0).
 
-The `AuthGuard` is a higher-order component (HOC) used to protect specific pages (routes) from unauthenticated access. 
-
-### Usage Pattern
-
-Pages are wrapped in their main export:
-```tsx
-export default function DashboardPage() {
-  return (
-    <AuthGuard>
-      {/* page content here */}
-    </AuthGuard>
-  );
-}
-```
-
-### Features
-
-1. **Hydration Loading**: Prevents flashing of unauthorized content until `authLoading` is finished.
-2. **Auto-Redirect**: Uses `useRouter().push('/login')` if no `user` object is resolved.
-3. **Session Awareness**: Integrated directly with `useAuth` hook and `AuthContext`.
-
----
-
-## 20. AUTHENTICATION STRATEGY
-
-1. **Tokens**: 64-char hex random strings stored in `localStorage` (`calai_session`) on the client.
-2. **Session DB**: Token is mapped to a `userId` in the `sessions` MySql table.
-3. **Expiry**: 30-day rolling expiration on every session verification.
-4. **Guards**: `AuthGuard.tsx` for client-side redirection. High-security server actions should use `getSessionUser()` for server-side verification.
+> **Last audited:** April 4, 2026  
+> **Auditor:** Assistant (Full PHP backend migration + static export)

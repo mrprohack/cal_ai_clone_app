@@ -8,9 +8,9 @@
 **Whenever you add, delete, rename, or significantly modify any file you MUST, before marking the task complete:**
 
 1. Update the **file tree** in `.agents/AGENT.md` § 4 (add/remove the entry with a description comment).
-2. Update the **relevant table** in `.agents/AGENT.md` (§ 5 schema, § 6 Server Actions, § 7 API routes, § 11 Navbar, § 15 env vars).
-3. Update the **Page Map** or **Key Server Actions** table in this file (`AGENTS.md`) if the change affects routes or Actions.
-4. Update the **Last audited** date in `.agents/AGENT.md` § 18.
+2. Update the **relevant table** in `.agents/AGENT.md` (§ 5 schema, § 6 PHP API, § 7 Next.js routes, § 11 Navbar, § 15 env vars).
+3. Update the **Page Map** or **PHP API Endpoints** table in this file (`AGENTS.md`) if the change affects routes or API.
+4. Update the **Last audited** date in `.agents/AGENT.md`.
 
 > See `.agents/AGENT.md` § 0 for the full lookup table of what to update per change type.
 
@@ -18,17 +18,23 @@
 
 ## TL;DR
 - **Type:** SaaS product
-- **Focus:** `web/` directory only (Next.js 14 app)
-- **DB/Backend:** MySQL & Server Actions (`web/lib/actions/`)
-- **AI:** Groq Llama 4 Vision via `/api/analyze-meal`
+- **Focus:** `web/` directory only (Next.js 14 static export)
+- **Backend:** PHP 8 scripts in `web/public/api/` — no Node.js server in production
+- **API Client:** `web/lib/phpApi.ts` — typed fetch() wrapper for all PHP endpoints
+- **DB:** MySQL via PDO (`web/public/api/db.php`)
+- **AI:** Groq Llama 4 Vision via Next.js `/api/analyze-meal` + `/api/chat`
 - **Auth:** Custom session tokens (localStorage) — no Clerk
 - **Styles:** Vanilla CSS Modules — no Tailwind
 - **Dev server:** `http://localhost:3004` (`cd web && npm run dev`)
+- **Static build:** `cd web && npm run build` → `web/out/`
+- **Local full-stack:** `php -S 0.0.0.0:8080 -t web/out/`
 - **Type check:** `cd web && npx tsc --noEmit`
 
 ### 🔑 Test Credentials
 - **Email:** `demo@calai.app`
 - **Password:** `Demo1234!`
+
+---
 
 ## Page Map
 | Route | File | Purpose |
@@ -46,20 +52,36 @@
 | `/profile` | `app/profile/page.tsx` | Goals, account, premium |
 | `/chat` | `app/chat/page.tsx` | FitBot AI coach |
 
-## DB Tables (MySQL via lib/db.ts)
+---
+
+## DB Tables (MySQL via PDO in `public/api/db.php`)
 `users` · `sessions` · `meals` · `progress` · `foods` · `bodyPhotos` · `mealPlans`
 
-## Key Server Actions (lib/actions/)
-| File | Exports |
+---
+
+## PHP API Endpoints (`public/api/*.php`)
+All use `POST /api/{file}.php?action={action}` pattern.
+
+| File | Actions |
 |------|---------|
-| `auth.ts` | signUp, signIn, signOut, getSessionUser |
-| `users.ts` | getById, updateProfile, updatePlan, getUserPlan |
-| `meals.ts` | log, byDate, remove, getTodayMeals, getRecent |
-| `progress.ts` | logWater, getDailyProgress, getStats, upsert, range |
-| `foods.ts` | list, search |
-| `bodyPhotos.ts` | savePhoto, listPhotos, getWeeklyPhotos, removePhoto |
-| `mealPlans.ts` | savePlan, listPlans, getLatestPlan, togglePin, removePlan |
+| `auth.php` | signUp, signIn, signOut, getSessionUser |
+| `users.php` | getById, updateProfile, updatePlan, getUserPlan, deleteAccount, exportData |
+| `meals.php` | log, byDate, remove, getTodayMeals, getRecent, range |
+| `progress.php` | logWater, upsert, getDailyProgress, getStats, range, logWeight, getAchievements |
+| `foods.php` | search, list |
+| `bodyPhotos.php` | listPhotos, savePhoto, removePhoto |
+| `mealPlans.php` | listPlans, savePlan, removePlan, togglePin |
+
+## Next.js AI Routes (Edge, remain server-side)
+| Route | Purpose |
+|-------|---------|
+| `/api/analyze-meal` | Groq Llama 4 Vision — meal photo → macros |
+| `/api/analyze-body` | Groq Llama 4 Vision — body photo analysis |
+| `/api/meal-plan` | Groq — AI 7-day meal plan generation |
+| `/api/chat` | Groq kimi-k2 — FitBot streaming chat |
+
+---
 
 ## Plans
 `free` (default) · `pro` ($9/mo) · `ultra` ($19/mo)  
-Change via: `users.updatePlan({ userId, plan })`
+Change via: `Users.updatePlan(userId, plan)` in `phpApi.ts`
