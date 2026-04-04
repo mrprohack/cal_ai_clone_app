@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import styles from "./Navbar.module.css";
 
 const NAV_ITEMS = [
-  { href: "/dashboard",  label: "Today",      icon: "home" },
+  { href: "/dashboard",  label: "Today",     icon: "home" },
   { href: "/log",        label: "Log",        icon: "restaurant" },
   { href: "/progress",   label: "Progress",   icon: "trending_up" },
   { href: "/body-scan",  label: "Body Scan",  icon: "body_system" },
@@ -18,10 +18,11 @@ const NAV_ITEMS = [
 
 export function Navbar() {
   const pathname  = usePathname();
-  const router = useRouter();
+  const router    = useRouter();
   const [scrolled, setScrolled] = useState(false);
   const { user, loading } = useAuth();
 
+  // Use a ref to avoid router being in useEffect deps (new object each render → infinite loop)
   const routerRef = useRef(router);
   useEffect(() => { routerRef.current = router; });
 
@@ -29,7 +30,7 @@ export function Navbar() {
     if (!loading && user && !user.onboarded) {
       routerRef.current.replace("/onboarding");
     }
-  }, [user, loading]); // ← router excluded: it's a new ref each render
+  }, [user, loading]); // router intentionally excluded — see routerRef above
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -38,7 +39,6 @@ export function Navbar() {
   }, []);
 
   useEffect(() => {
-    // Scroll the active mobile nav item into view if it's off-screen
     const activeEl = document.querySelector(`.${styles.mobileActive}`);
     if (activeEl) {
       activeEl.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
@@ -48,8 +48,8 @@ export function Navbar() {
   return (
     <>
       <nav className={`${styles.nav} ${scrolled ? styles.navScrolled : ""}`}>
-        {/* Logo */}
-        <Link href="/" className={styles.logo}>
+        {/* Logo — prefetch:false stops RSC prefetch of root "/" on every render */}
+        <Link href="/" className={styles.logo} prefetch={false}>
           <div className={styles.logoMark}>
             <span className="material-symbols-outlined">fitness_center</span>
           </div>
@@ -58,7 +58,7 @@ export function Navbar() {
           </span>
         </Link>
 
-        {/* Desktop Nav links */}
+        {/* Desktop Nav links — prefetch:false prevents mass RSC prefetch of all pages */}
         <div className={styles.desktopLinks}>
           {NAV_ITEMS.map(({ href, label, icon }) => {
             const isActive = pathname?.startsWith(href);
@@ -66,6 +66,7 @@ export function Navbar() {
               <Link
                 key={href}
                 href={href}
+                prefetch={false}
                 className={`${styles.link} ${isActive ? styles.active : ""}`}
               >
                 <span className={`material-symbols-outlined ${styles.linkIcon}`}>
@@ -79,7 +80,7 @@ export function Navbar() {
         </div>
 
         {/* Desktop Right CTA */}
-        <Link href="/log" className={styles.logCta}>
+        <Link href="/log" className={styles.logCta} prefetch={false}>
           <span className="material-symbols-outlined">add_circle</span>
           Log Meal
         </Link>
@@ -94,6 +95,7 @@ export function Navbar() {
               <Link
                 key={href}
                 href={href}
+                prefetch={false}
                 className={`${styles.mobileLink} ${isActive ? styles.mobileActive : ""}`}
               >
                 <div className={styles.mobileIconWrapper}>
