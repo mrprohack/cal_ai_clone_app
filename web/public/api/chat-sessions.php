@@ -14,6 +14,7 @@
 
 require_once __DIR__ . '/db.php';
 
+$pdo    = getDB();
 $action = $_GET['action'] ?? '';
 $body   = json_decode(file_get_contents('php://input'), true) ?? [];
 
