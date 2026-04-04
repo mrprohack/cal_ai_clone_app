@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { listPlans as listSavedPlans, savePlan, togglePin, removePlan } from "@/lib/actions/mealPlans";
+// mealPlans actions → fetch /api/mealPlans.php
 import { Navbar } from "@/components/Navbar";
 import styles from "./MealPlan.module.css";
 import { AuthGuard } from "@/components/AuthGuard";
@@ -141,8 +141,9 @@ export default function MealPlanPage() {
   const fetchPlans = useCallback(async () => {
     if (!userId) return;
     try {
-      const res = await listSavedPlans(userId);
-      setSavedPlans(res as SavedPlan[] || []);
+      const res = await fetch('/api/mealPlans.php?action=listPlans', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({userId}) });
+      const data = await res.json();
+      setSavedPlans(data.plans as SavedPlan[] || []);
     } catch (err) {
       console.error("fetchPlans error:", err);
     }
@@ -215,7 +216,7 @@ export default function MealPlanPage() {
     if (!userId || !plan) return;
     setSaving(true);
     try {
-      await savePlan({ userId, planJson: JSON.stringify(plan), planName: plan.planName, calorieTarget: plan.dailyCalorieTarget });
+      await fetch('/api/mealPlans.php?action=savePlan', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ userId, planJson: JSON.stringify(plan), planName: plan.planName, calorieTarget: plan.dailyCalorieTarget })});
       setSaved(true);
       fetchPlans();
     } catch (err: unknown) {
@@ -241,14 +242,14 @@ export default function MealPlanPage() {
   const handleDeletePlan = async (p: SavedPlan) => {
     if (!userId) return;
     if (!confirm("Delete this plan?")) return;
-    await removePlan(p.id, userId);
+    await fetch('/api/mealPlans.php?action=removePlan', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id: p.id, userId})});
     fetchPlans();
     if (selectedSavedPlan?.id === p.id) setSelectedSavedPlan(null);
   };
 
   const handleTogglePin = async (p: SavedPlan) => {
     if (!userId) return;
-    await togglePin(p.id, userId);
+    await fetch('/api/mealPlans.php?action=togglePin', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id: p.id, userId})});
     fetchPlans();
   };
 

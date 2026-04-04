@@ -87,8 +87,13 @@ $curlErr  = curl_errno($ch);
 $curlMsg  = curl_error($ch);
 curl_close($ch);
 
-// ── Handle connection failure ─────────────────────────────────────────────────
+// ── Handle connection failure (Auto-Restart) ───────────────────────────────────
 if ($curlErr) {
+    // Attempt to wake up the PM2 daemon directly from the proxy
+    // PHP shell_exec lacks environment variables, so we declare them fully
+    $startCmd = 'export HOME="/home/u697986122"; export PM2_HOME="/home/u697986122/.pm2"; export NVM_DIR="/home/u697986122/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"; cd /home/u697986122/domains/lightgreen-spider-622425.hostingersite.com && (pm2 resurrect >/dev/null 2>&1 || pm2 start npm --name cal-ai-web -- start >/dev/null 2>&1)';
+    shell_exec($startCmd);
+
     http_response_code(503);
     header('Content-Type: text/html; charset=utf-8');
     header('Retry-After: 30');

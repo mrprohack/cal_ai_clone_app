@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { completeOnboarding } from "@/lib/actions/users";
+import { Users } from "@/lib/phpApi";
 import styles from "./Onboarding.module.css";
 
 const STEPS = 4;
@@ -34,7 +34,7 @@ export default function OnboardingPage() {
   async function handleFinish() {
     setSubmitting(true);
     try {
-      await completeOnboarding(Number(user!.id), {
+      await Users.completeOnboarding(Number(user!.id), {
         gender,
         ageYears: parseInt(ageYears, 10) || 30,
         heightCm: parseInt(heightCm, 10) || 175,

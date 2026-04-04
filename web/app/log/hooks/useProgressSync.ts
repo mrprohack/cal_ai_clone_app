@@ -1,4 +1,4 @@
-import { upsert as upsertProgress } from "@/lib/actions/progress"
+import { Progress } from "@/lib/phpApi"
 import { useAuth } from "@/lib/auth-context"
 import type { DailyTotals } from "../types"
 
@@ -18,7 +18,7 @@ export function useProgressSync(date: string, todayTotals: DailyTotals) {
     const carbsConsumed = Math.round(todayTotals.carbs + (delta?.carbs || 0))
     const fatConsumed = Math.round(todayTotals.fat + (delta?.fat || 0))
 
-    await upsertProgress({
+    await Progress.upsert({
       userId,
       date,
       caloriesConsumed,

@@ -1,10 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { getTodayMeals } from "@/lib/actions/meals";
-import { getDailySummary } from "@/lib/actions/daily";
-import { getWeightHistory, getStats, getCalorieTrend, getDailyProgress, logWater } from "@/lib/actions/progress";
-import { listPhotos } from "@/lib/actions/bodyPhotos";
+import { Meals, Progress, getDailySummary, getCalorieTrend, getWeightHistory } from "@/lib/phpApi";
 import { Navbar } from "@/components/Navbar";
 import { useAuth } from "@/lib/auth-context";
 import Link from "next/link";
@@ -182,13 +179,13 @@ export default function DashboardPage() {
         statsRes,
         progressRes
       ] = await Promise.all([
-        getTodayMeals(today), 
-        getDailySummary(uId, today),
-        getWeightHistory(uId, getFromDate(90), today),
-        listPhotos(uId),
-        getCalorieTrend(uId, getFromDate(7), today),
-        getStats(uId, getFromDate(30), today),
-        getDailyProgress(uId, today)
+          Meals.getTodayMeals(uId, today),
+          getDailySummary(uId, today),
+          getWeightHistory(uId, getFromDate(90), today),
+          [] as any[], // body photos – add bodyPhotos.php later
+          getCalorieTrend(uId, getFromDate(7), today),
+          Progress.getStats(uId, getFromDate(30), today),
+          Progress.getDailyProgress(uId, today)
       ]);
 
       setMeals(mealsRes || []);
@@ -216,9 +213,8 @@ export default function DashboardPage() {
   async function handleAddWater() {
     if (!user || !user.id) return;
     const uId = Number(user.id);
-    await logWater(uId, today, 250);
-    // Refresh
-    const progressRes = await getDailyProgress(uId, today);
+    await Progress.logWater(uId, today, 250);
+    const progressRes = await Progress.getDailyProgress(uId, today);
     setDailyProgress(progressRes);
   }
 

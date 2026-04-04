@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { log as logMeal, remove as removeMeal } from "@/lib/actions/meals"
+import { Meals } from "@/lib/phpApi"
 import type { ManualForm } from "../types"
 import type { AiMealResult } from "../types"
 
@@ -25,7 +25,7 @@ export function useMealLogging() {
   }) => {
     setSaving(true)
     try {
-      await logMeal(data)
+      await Meals.log(data)
       return { success: true }
     } catch (error) {
       console.error("Failed to log meal:", error)
@@ -53,7 +53,7 @@ export function useMealLogging() {
 
   const handleDelete = async (id: number) => {
     try {
-      await removeMeal(id)
+      await Meals.remove(id)
       return { success: true }
     } catch (error) {
       console.error("Failed to delete meal:", error)

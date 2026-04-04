@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { updateProfile, deleteAccount as doDeleteAccount, exportData, getUserPlan } from "@/lib/actions/users";
+import { Users } from "@/lib/phpApi";
 import Link from "next/link";
 import { Navbar } from "@/components/Navbar";
 import { useAuth } from "@/lib/auth-context";
@@ -201,7 +201,7 @@ export default function ProfilePage() {
   const fetchPlan = useCallback(async () => {
     if (!userId) return;
     try {
-      const res = await getUserPlan(userId);
+      const res = await Users.getUserPlan(userId);
       setPlanInfo(res);
     } catch (err) {
       console.error("fetchPlan error:", err);
@@ -274,7 +274,7 @@ export default function ProfilePage() {
     setSaveState("saving");
     try {
       if (userId) {
-        await updateProfile(userId, {
+        await Users.updateProfile(userId, {
           calorieGoal: calories,
           proteinGoal: protein,
           carbsGoal:   carbs,
@@ -300,7 +300,7 @@ export default function ProfilePage() {
     if (field === "ageYears") { patch.ageYears = Number(value); setAgeYears(value); }
     if (field === "gender")   { patch.gender   = value; setGender(value); }
     try {
-      await updateProfile(userId, patch);
+      await Users.updateProfile(userId, patch);
       showToast("Profile updated!", "success");
     } catch {
       showToast("Could not save change.", "error");
@@ -311,7 +311,7 @@ export default function ProfilePage() {
     if (!userId) return;
     setExporting(true);
     try {
-      const data = await exportData(userId);
+      const data = await Users.exportData(userId);
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -332,7 +332,7 @@ export default function ProfilePage() {
     if (!userId) return;
     setDeleting(true);
     try {
-      await doDeleteAccount(userId);
+      await Users.deleteAccount(userId);
       await signOut();
       window.location.href = "/";
     } catch {

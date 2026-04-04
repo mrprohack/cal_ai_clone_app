@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { updatePlan as doUpdatePlan, getUserPlan } from "@/lib/actions/users";
+import { Users } from "@/lib/phpApi";
 import { Navbar } from "@/components/Navbar";
 import styles from "./Plans.module.css";
 import { AuthGuard } from "@/components/AuthGuard";
@@ -86,7 +86,7 @@ export default function PlansPage() {
   const fetchPlan = useCallback(async () => {
     if (!userId) return;
     try {
-      const res = await getUserPlan(userId);
+      const res = await Users.getUserPlan(userId);
       setPlanInfo(res);
     } catch (err) {
       console.error("fetchPlan error:", err);
@@ -107,7 +107,7 @@ export default function PlansPage() {
     if (!userId || planId === currentPlan) return;
     setLoading(planId);
     try {
-      await doUpdatePlan(userId, planId);
+      await Users.updatePlan(userId, planId);
       setSuccess(planId);
       fetchPlan();
       setTimeout(() => setSuccess(null), 3500);

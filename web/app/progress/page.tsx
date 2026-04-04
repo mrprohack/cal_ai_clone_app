@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { getStats, getCalorieTrend, getMacroTotals, getAchievements, getWeightHistory, logWeight } from "@/lib/actions/progress";
+import { Progress } from "@/lib/phpApi";
 import { useAuth } from "@/lib/auth-context";
 import { Navbar } from "@/components/Navbar";
 import styles from "./Progress.module.css";
@@ -85,11 +85,11 @@ export default function ProgressPage() {
     setIsLoading(true);
     try {
       const [statsRes, trendRes, macrosRes, achieveRes, weightRes] = await Promise.all([
-        getStats(userId, fromDate, today),
-        getCalorieTrend(userId, fromDate, today),
-        getMacroTotals(userId, fromDate, today),
-        getAchievements(userId),
-        getWeightHistory(userId, getFromDate(90), today)
+        Progress.getStats(userId, fromDate, today),
+        Progress.getCalorieTrend(userId, fromDate, today),
+        Progress.getMacroTotals(userId, fromDate, today),
+        Progress.getAchievements(userId),
+        Progress.getWeightHistory(userId, getFromDate(90), today)
       ]);
       setStats(statsRes);
       setTrendRaw(trendRes || []);
@@ -342,7 +342,7 @@ export default function ProgressPage() {
                   <button
                     onClick={async () => {
                       if (!weightInput || isNaN(Number(weightInput)) || !userId) return;
-                      await logWeight(userId, today, Number(weightInput));
+                      await Progress.logWeight(userId, today, Number(weightInput));
                       setWeightInput("");
                       fetchData();
                     }}
@@ -538,7 +538,7 @@ export default function ProgressPage() {
                 <button
                   onClick={async () => {
                     if (!weightInput || isNaN(Number(weightInput)) || !userId) return;
-                    await logWeight(userId, today, Number(weightInput));
+                    await Progress.logWeight(userId, today, Number(weightInput));
                     setWeightInput("");
                     setShowWeightModal(false);
                     fetchData();

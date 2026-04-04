@@ -2,8 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { getStats } from "@/lib/actions/progress";
-import { byDate as getTodayMeals, range as getMealsRange } from "@/lib/actions/meals";
+import { Progress, Meals } from "@/lib/phpApi";
 import { Navbar } from "@/components/Navbar";
 import styles from "./Chat.module.css";
 import { AuthGuard } from "@/components/AuthGuard";
@@ -58,9 +57,9 @@ export default function ChatPage() {
     if (!userId) return;
     try {
       const [_today, _past, _stats] = await Promise.all([
-        getTodayMeals(userId, toDate),
-        getMealsRange(userId, fromDate, toDate),
-        getStats(userId, fromDate, toDate),
+        Meals.getTodayMeals(userId, toDate),
+          Meals.range(userId, fromDate, toDate),
+          Progress.getStats(userId, fromDate, toDate),
       ]);
       setTodayMeals(_today || []);
       setPastMeals(_past || []);

@@ -13,9 +13,7 @@ interface AiMealResult {
 }
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import { byDate, log as logMeal, remove as removeMeal, getRecent } from "@/lib/actions/meals";
-import { upsert as upsertProgress } from "@/lib/actions/progress";
-import { search as searchFoods } from "@/lib/actions/foods";
+import { Meals, Progress } from "@/lib/phpApi";
 import { useAuth } from "@/lib/auth-context";
 import { Navbar } from "@/components/Navbar";
 import styles from "./Log.module.css";
@@ -390,7 +388,7 @@ export default function LogPage() {
   const fetchMeals = useCallback(async () => {
     if (!userId) return;
     try {
-      const res = await byDate(userId, today);
+      const res = await Meals.byDate(userId, today);
       setMeals(res || []);
     } catch (err) {
       console.error("fetchMeals error:", err);
@@ -399,8 +397,9 @@ export default function LogPage() {
 
   const fetchFoods = useCallback(async () => {
     try {
-      const res = await searchFoods(query, foodCat);
-      setDisplayedFoods(res || []);
+      const res = await fetch('/api/foods.php?action=search', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({query, category: foodCat})});
+      const data = await res.json();
+      setDisplayedFoods(data.foods || []);
     } catch (err) {
       console.error("fetchFoods error:", err);
     }
@@ -409,7 +408,7 @@ export default function LogPage() {
   const fetchRecent = useCallback(async () => {
     if (!userId) return;
     try {
-      const res = await getRecent(userId);
+      const res = await Meals.getRecent(userId);
       setRecentFoods(res || []);
     } catch (err) {
       console.error("fetchRecent error:", err);
@@ -470,7 +469,7 @@ export default function LogPage() {
 
   async function syncProgress(dCals = 0, dP = 0, dC = 0, dF = 0) {
     if (!userId) return;
-    await upsertProgress({
+    await Progress.upsert({
       userId, date: today,
       caloriesConsumed: Math.round(todayTotals.cals + dCals),
       proteinConsumed:  Math.round(todayTotals.protein + dP),
@@ -499,7 +498,7 @@ export default function LogPage() {
       : `${Math.round(multiplier * 100)}g`;
     setSaving(true);
     try {
-      await logMeal({
+      await Meals.log({
         userId, name: food.name, mealType,
         calories: cals, proteinG: protein, carbsG: carbs, fatG: fat,
         servingSize: serving,
@@ -527,7 +526,7 @@ export default function LogPage() {
     const carbs = parseFloat(form.carbs) || 0, fat = parseFloat(form.fat) || 0;
     setSaving(true);
     try {
-      await logMeal({ userId, name: form.name, mealType, calories: cals, proteinG: protein, carbsG: carbs, fatG: fat, servingSize: form.servingSize || "1 serving", date: today, loggedAt: Date.now(), aiGenerated: false });
+      await Meals.log({ userId, name: form.name, mealType, calories: cals, proteinG: protein, carbsG: carbs, fatG: fat, servingSize: form.servingSize || "1 serving", date: today, loggedAt: Date.now(), aiGenerated: false });
       await syncProgress(cals, protein, carbs, fat);
       fetchMeals();
       fetchRecent();
@@ -540,9 +539,9 @@ export default function LogPage() {
   /* ── Delete ── */
   async function handleDelete(id: number) {
     const meal = (meals as any[]).find((m) => m.id === id);
-    await removeMeal(id);
+    await Meals.remove(id);
     if (userId && meal) {
-      await upsertProgress({ userId, date: today,
+      await Progress.upsert({ userId, date: today,
         caloriesConsumed: Math.max(0, Math.round(todayTotals.cals    - (meal.calories ?? 0))),
         proteinConsumed:  Math.max(0, Math.round(todayTotals.protein  - (meal.proteinG ?? 0))),
         carbsConsumed:    Math.max(0, Math.round(todayTotals.carbs    - (meal.carbsG   ?? 0))),
@@ -621,7 +620,7 @@ export default function LogPage() {
     const carb = Math.round(aiResult.carbsG * scanQty);
     const fat  = Math.round(aiResult.fatG * scanQty);
     try {
-      await logMeal({
+      await Meals.log({
         userId,
         name:        aiResult.name,
         mealType,

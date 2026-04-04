@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { listPhotos, savePhoto, removePhoto } from "@/lib/actions/bodyPhotos";
+// bodyPhotos actions → fetch /api/bodyPhotos.php
 import { Navbar } from "@/components/Navbar";
 import styles from "./BodyScan.module.css";
 import { AuthGuard } from "@/components/AuthGuard";
@@ -86,8 +86,9 @@ export default function BodyScanPage() {
   const fetchPhotos = useCallback(async () => {
     if (!userId) return;
     try {
-      const res = await listPhotos(userId);
-      setPhotos(res as PhotoEntry[] || []);
+      const res = await fetch('/api/bodyPhotos.php?action=listPhotos', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({userId}) });
+      const data = await res.json();
+      setPhotos(data.photos as PhotoEntry[] || []);
     } catch (err) {
       console.error("fetchPhotos error:", err);
     }
@@ -193,14 +194,9 @@ export default function BodyScanPage() {
         thumbnail = canvas.toDataURL("image/jpeg", 0.7).split(",")[1];
       }
 
-      await savePhoto({
-        userId,
-        date: today,
-        imageData: thumbnail,
-        analysis: JSON.stringify(analysis),
-        weekLabel: `Week ${weekNum}`,
-        notes: notes || undefined,
-      });
+      await fetch('/api/bodyPhotos.php?action=savePhoto', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+        userId, date: today, imageData: thumbnail, analysis: JSON.stringify(analysis), weekLabel: `Week ${weekNum}`, notes: notes || null
+      })});
       setSaved(true);
       fetchPhotos();
       setActiveTab("history");
@@ -214,7 +210,7 @@ export default function BodyScanPage() {
   const handleDelete = async (photo: PhotoEntry) => {
     if (!userId) return;
     if (!confirm("Delete this check-in?")) return;
-    await removePhoto(photo.id, userId);
+    await fetch('/api/bodyPhotos.php?action=removePhoto', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id: photo.id, userId})});
     fetchPhotos();
     if (selectedPhoto?.id === photo.id) setSelectedPhoto(null);
   };

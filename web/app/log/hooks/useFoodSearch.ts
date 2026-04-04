@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from "react"
-import { search as searchFoods } from "@/lib/actions/foods"
 import type { DBFood } from "../types"
 
 /**
@@ -15,8 +14,13 @@ export function useFoodSearch(initialQuery = "") {
   useEffect(() => {
     const fetchDbFoods = async () => {
       try {
-        const res = await searchFoods(query, "All")
-        setDbResult(res as DBFood[] || [])
+        const res = await fetch(`/api/foods.php?action=search`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query, category: "All" }),
+        });
+        const data = await res.json();
+        setDbResult(data.foods as DBFood[] || [])
       } catch (err) {
         console.error("searchFoods error:", err)
       }
