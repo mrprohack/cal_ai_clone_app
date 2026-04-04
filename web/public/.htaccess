@@ -1,0 +1,44 @@
+Options -MultiViews -Indexes
+RewriteEngine On
+RewriteBase /
+
+# 1. Serve real existing files/dirs directly (JS, CSS, images, PHP API, etc.)
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# 2. _next/ static assets — if file missing, 404 (never rewrite to index.html)
+RewriteRule ^_next/(.*)$ _next/$1 [L]
+
+# 3. api/ PHP files — pass directly to PHP
+RewriteRule ^api/(.*)$ api/$1 [L]
+
+# 4. Pages with trailing slash → serve their static index.html
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{DOCUMENT_ROOT}%{REQUEST_URI}index.html -f
+RewriteRule ^(.*)$ %{REQUEST_URI}index.html [L]
+
+# 5. Pages without trailing slash → redirect to add slash (Next.js trailingSlash: true)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{DOCUMENT_ROOT}%{REQUEST_URI}/index.html -f
+RewriteRule ^(.+[^/])$ /$1/ [R=301,L]
+
+# 6. SPA fallback for any unmatched routes
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ /index.html [L]
+
+# Cache control: long-cache hashed assets, no-cache HTML
+<IfModule mod_headers.c>
+  # Hashed JS/CSS (safe to cache forever — hash changes on rebuild)
+  <FilesMatch "\.(js|css|woff2?|ttf|eot|svg|png|webp|ico)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+  # HTML pages — always revalidate so new deployments are picked up
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+</IfModule>
