@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import styles from "./Navbar.module.css";
 
@@ -22,11 +22,14 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const { user, loading } = useAuth();
 
+  const routerRef = useRef(router);
+  useEffect(() => { routerRef.current = router; });
+
   useEffect(() => {
     if (!loading && user && !user.onboarded) {
-      router.replace("/onboarding");
+      routerRef.current.replace("/onboarding");
     }
-  }, [user, loading, router]);
+  }, [user, loading]); // ← router excluded: it's a new ref each render
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);

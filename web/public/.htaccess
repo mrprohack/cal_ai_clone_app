@@ -2,6 +2,11 @@ Options -MultiViews -Indexes
 RewriteEngine On
 RewriteBase /
 
+# 0. Block Next.js RSC prefetch requests (?_rsc=...) — static export doesn't support RSC
+#    Strip the _rsc param and redirect to the clean URL to prevent infinite refetch loops
+RewriteCond %{QUERY_STRING} _rsc=
+RewriteRule ^(.*)$ /$1? [R=302,L]
+
 # 1. Serve real existing files/dirs directly (JS, CSS, images, PHP API, etc.)
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
