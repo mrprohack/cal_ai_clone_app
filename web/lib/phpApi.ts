@@ -5,7 +5,8 @@
  * Works in both: local dev (proxied to localhost:8000) and production (Hostinger PHP).
  */
 
-const BASE = typeof window !== "undefined" ? "" : "";
+const isDev = process.env.NODE_ENV === "development";
+const BASE = typeof window !== "undefined" ? (isDev ? "http://localhost:8000" : "") : "";
 
 async function call<T = any>(endpoint: string, action: string, body?: object): Promise<T> {
   const res = await fetch(`${BASE}/api/${endpoint}.php?action=${action}`, {

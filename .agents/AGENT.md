@@ -650,5 +650,5 @@ export default function DashboardPage() {
 10. **Maintain premium UX** — dark theme, smooth animations, glassmorphism cards.
 11. **⚠️ UPDATE AGENT.md + AGENTS.md** after ANY file change — non-negotiable (§ 0).
 
-> **Last audited:** April 4, 2026  
-> **Auditor:** Assistant (Full PHP backend migration + static export)
+> **Last audited:** April 5, 2026  
+> **Auditor:** Assistant (Optimizing mobile UX layouts and navigation)

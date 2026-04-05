@@ -209,7 +209,10 @@
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     width: 100%;
-    overflow: visible;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
   }
   
   .tabs::-webkit-scrollbar {
@@ -217,7 +220,8 @@
   }
 
   .tabBtn {
-    flex: 1;
+    flex: 0 0 auto;
+    min-width: 72px;
     flex-direction: column;
     align-items: center;
     justify-content: center;
@@ -378,6 +382,7 @@
   font-variant-numeric: tabular-nums;
   transition: border-color 0.2s;
   padding: 0 4px 0 0;
+  appearance: textfield;
   -moz-appearance: textfield;
 }
 

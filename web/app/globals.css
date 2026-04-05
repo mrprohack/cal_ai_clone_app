@@ -79,9 +79,17 @@ body {
   font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
   background: var(--bg);
   color: var(--text);
-  min-height: 100vh;
+  min-height: 100dvh;
   line-height: 1.5;
   overflow-x: hidden;
+}
+
+/* On mobile, all scrollable page content must clear the fixed bottom nav */
+@media (max-width: 768px) {
+  /* Pages that use overflow-y: auto or scroll naturally push content above the nav */
+  main, [class*="page"], [class*="container"] {
+    padding-bottom: calc(60px + env(safe-area-inset-bottom));
+  }
 }
 
 a { color: inherit; text-decoration: none; }

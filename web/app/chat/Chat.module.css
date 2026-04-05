@@ -1,6 +1,6 @@
 /* ── Page shell ── */
 .page {
-  height: 100vh;
+  height: 100dvh;
   background: var(--bg);
   display: flex;
   flex-direction: column;
@@ -645,34 +645,45 @@
   margin-top: 8px;
 }
 
-/* ── Responsive ── */
+/* Responsive */
 @media (max-width: 768px) {
-  .layout { height: calc(100dvh - 56px - 60px); }
-
   .sidebar {
     position: fixed;
     left: 0;
-    top: 56px;
-    bottom: 60px;
-    width: 280px;
+    top: 0;
+    bottom: calc(60px + env(safe-area-inset-bottom));
+    width: 85vw;
+    max-width: 300px;
     transform: translateX(-100%);
-    box-shadow: 4px 0 20px rgba(0,0,0,0.3);
+    box-shadow: 4px 0 32px rgba(0,0,0,0.5);
+    z-index: 150;
   }
 
   .sidebarOpen { transform: translateX(0); }
   .overlay     { display: block; }
-
-  .menuBtn   { display: flex; }
+  .menuBtn       { display: flex; }
   .newChatBtnTop { display: flex; }
 
-  .bubble    { max-width: 88%; }
-  .messages  { padding: 12px; gap: 12px; }
-  .chatTopbar { padding: 8px 14px; }
+  .bubble     { max-width: 88%; }
+  .messages   { padding: 12px; gap: 12px; }
+  .chatTopbar { padding: 8px 14px; min-height: 48px; }
 
-  .chipRow { padding: 0 12px 8px; }
+  .chipRow {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: visible;
+    padding: 0 12px 8px;
+    gap: 8px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .chipRow::-webkit-scrollbar { display: none; }
+
   .inputWrap { padding: 8px 12px 12px; }
+  .textarea { font-size: 16px; }
 }
 
 @media (min-width: 769px) {
   .menuBtn { display: none; }
+  .newChatBtnTop { display: none; }
 }

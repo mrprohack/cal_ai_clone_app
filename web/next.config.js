@@ -1,8 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
+  output: process.env.NODE_ENV === "development" ? undefined : "export",
   trailingSlash: true,
-  // Disable server-side features not compatible with static export
+  // Disable server-side features not compatible with static export during build
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
   images: {
@@ -12,8 +12,18 @@ const nextConfig = {
       { protocol: "https", hostname: "ui-avatars.com" },
     ],
   },
-  // Note: rewrites() is incompatible with output:'export' — removed.
-  // API calls go to /api/*.php which Apache handles via .htaccess.
+  // Proxy /api/ calls to local PHP server (port 8000) during development
+  async rewrites() {
+    if (process.env.NODE_ENV === "development") {
+      return [
+        {
+          source: "/api/:path*",
+          destination: "http://localhost:8000/api/:path*",
+        },
+      ];
+    }
+    return [];
+  },
 };
 
 module.exports = nextConfig;
