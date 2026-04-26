@@ -8,6 +8,25 @@ dist/
 
 .env.local
 
+# Build artifacts
+**/deploy.tar.gz
+**/*.tsbuildinfo
+**/out/
+**/.next/
+**/node_modules/
+
+# Logs
+*.log
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
 # ECC source (installed, not committed)
 everything-claude-code/
 
@@ -15,5 +34,7 @@ everything-claude-code/
 fetch_10k.py
 foods_10k.jsonl
 *.csv
-*.tsbuildinfo
-deploy.tar.gz
+
+# Vercel
+.vercel
+.turbo
